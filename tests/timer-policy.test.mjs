@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pauseReason, activeDelta } from '../src/timer-policy.mjs';
-test('focus, visibility, idle boundary and manual pause control counting',()=>{
-  const active={paused:false,hidden:false,focused:true,now:299999,lastActivity:0};
-  assert.equal(pauseReason(active),'');assert.equal(pauseReason({...active,now:300000}),'空闲超过 5 分钟');
-  assert.equal(pauseReason({...active,focused:false}),'窗口失焦，已暂停');assert.equal(pauseReason({...active,hidden:true}),'页面隐藏，已暂停');assert.equal(pauseReason({...active,paused:true}),'已手动暂停');
-  assert.equal(pauseReason({...active,now:300001,lastActivity:300000}),'');
+import { elapsedSince, elapsedDays } from '../src/timer-policy.mjs';
+test('wall elapsed time includes background, idle and sleep without a 30 minute cap',()=>{
+  const start=Date.parse('2026-10-15T10:00:00+08:00');
+  for(const duration of [1000,300000,1800000,7200000,3*86400000])assert.equal(elapsedSince(start,start+duration),duration);
+  assert.equal(elapsedSince(start,start-1000),0);
 });
-test('first frame, focus transitions and sleep gaps do not fabricate time',()=>{
-  assert.equal(activeDelta(1000,true,true,true),1000);assert.equal(activeDelta(1000,true,false,true),0);assert.equal(activeDelta(1000,false,true,true),0);assert.equal(activeDelta(1000,true,true,false),0);assert.equal(activeDelta(3600000,true,true,true),0);assert.equal(activeDelta(-100,true,true,true),0);
+test('Hong Kong dates split arbitrary sleep intervals across multiple midnights',()=>{
+  const start=Date.parse('2026-10-15T23:59:50+08:00');
+  assert.deepEqual(elapsedDays(start,15000),{'2026-10-15':10000,'2026-10-16':5000});
+  const days=elapsedDays(start,3*86400000);assert.equal(Object.keys(days).length,4);assert.equal(Object.values(days).reduce((a,b)=>a+b,0),3*86400000);
 });

@@ -10,7 +10,7 @@ import { lessons } from '../src/content/curriculum.mjs';
 async function fixture(t,now) { const root=await fs.mkdtemp(path.join(os.tmpdir(),'engine-lab-test-'));t.after(()=>{assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir())+path.sep+'engine-lab-test-'));return fs.rm(root,{recursive:true,force:true});});return {root,store:new LearningStore(root,now)}; }
 test('32 complete, uniquely numbered lessons and coherent visual frames',()=>{
   assert.equal(lessons.length,32);assert.equal(new Set(lessons.map(l=>l.id)).size,32);
-  lessons.forEach((l,i)=>{assert.equal(l.n,i+1);assert.ok(l.sections.length>=4);assert.equal(l.questions.length,3);assert.ok(l.frames.length>=3);assert.ok(l.tasks.length>=3);assert.ok(l.memory.rule);assert.ok(l.memory.trap);assert.ok(l.files.length);assert.ok(l.starterFiles.length);for(const f of l.frames){assert.ok(f.explanation);assert.ok(f.nodes.length>=3);for(const line of f.lines)assert.ok(line>0&&line<=l.code.split('\n').length,`${l.id}: visual line ${line}`);}});
+  lessons.forEach((l,i)=>{assert.equal(l.n,i+1);assert.ok(l.sections.length>=4);assert.equal(l.questions.length,l.n<=8?10:l.n===14?18:l.n<=26?14:12);assert.ok(l.lecture.length>=8);assert.ok(l.lecture.filter(s=>s.code).length>=4);assert.ok(l.frames.length>=3);assert.ok(l.tasks.length>=3);assert.ok(l.memory.rule);assert.ok(l.memory.trap);assert.ok(l.files.length);assert.ok(l.starterFiles.length);for(const f of l.frames){assert.ok(f.explanation);assert.ok(f.nodes.length>=3);for(const line of f.lines)assert.ok(line>0&&line<=l.code.split('\n').length,`${l.id}: visual line ${line}`);}});
 });
 test('save, restart, revision conflict and invalid path',async t=>{
   const {root,store}=await fixture(t);const initial=await store.getLesson('lesson-14');
@@ -42,19 +42,4 @@ test('manual times validate dates and minutes, edit and soft-delete',async t=>{
   await assert.rejects(store.manual({...values,date:'2026-02-30'},randomUUID()),{status:400});await assert.rejects(store.manual({...values,date:'2026-10-16'},randomUUID()),{status:400});
   await assert.rejects(store.manual({...values,minutes:0},randomUUID()),{status:400});await assert.rejects(store.manual(values,id),{status:409});
   const edited=await store.manual({...values,minutes:40,revision:1},id);assert.equal(edited.durationMs,2400000);const deleted=await store.deleteSession(id,2);assert.equal(deleted.deleted,true);assert.equal((await store.sessions()).length,1);
-});
-test('timer lease deduplicates tabs and retries; release allows takeover',async t=>{
-  let now=100000;const {store}=await fixture(t,()=>now);const a=randomUUID(),b=randomUUID();
-  const claim=await store.claim(a,'lesson-14');assert.equal((await store.claim(b,'lesson-14')).acquired,false);
-  now+=15000;const request={clientId:a,sessionId:claim.sessionId,seq:1,deltaMs:15000,release:false};const pulse=await store.pulse(request);assert.equal(pulse.record.durationMs,15000);
-  now+=1000;const again=await store.pulse(request);assert.equal(again.record.durationMs,15000);
-  now+=1000;const released=await store.pulse({...request,seq:2,deltaMs:2000,release:true});assert.equal(released.record.durationMs,17000);assert.equal((await store.claim(b,'lesson-14')).acquired,true);
-});
-test('sleep gap is not counted; stale heartbeats cannot extend time',async t=>{
-  let now=100000;const {store}=await fixture(t,()=>now);const a=randomUUID();const c=await store.claim(a,'lesson-01');now+=3600000;
-  assert.equal((await store.pulse({clientId:a,sessionId:c.sessionId,seq:1,deltaMs:15000,release:false})).acquired,false);assert.equal((await store.sessions())[0].durationMs,0);
-});
-test('Hong Kong midnight splits one active interval into two dates',async t=>{
-  let now=new Date('2026-10-15T23:59:50+08:00').getTime();const {store}=await fixture(t,()=>now);const a=randomUUID();const c=await store.claim(a,'lesson-24');now+=15000;
-  const {record}=await store.pulse({clientId:a,sessionId:c.sessionId,seq:1,deltaMs:15000,release:false});assert.deepEqual(record.days,{'2026-10-15':10000,'2026-10-16':5000});assert.equal(hkDate(now),'2026-10-16');
 });

@@ -1,6 +1,7 @@
-export function pauseReason({ paused, hidden, focused, now, lastActivity }) {
-  return paused ? '已手动暂停' : hidden ? '页面隐藏，已暂停' : !focused ? '窗口失焦，已暂停' : now-lastActivity>=300000 ? '空闲超过 5 分钟' : '';
-}
-export function activeDelta(elapsed, eligible, previouslyEligible, hasLease) {
-  return eligible && previouslyEligible && hasLease && elapsed>=0 && elapsed<2500 ? elapsed : 0;
+export const elapsedSince=(startedAt,now)=>Math.max(0,Math.floor(now-startedAt));
+const day=time=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(time));
+export function elapsedDays(startedAt,durationMs){
+  const days={};const end=startedAt+durationMs;
+  for(let cursor=startedAt;cursor<end;){const key=day(cursor);const midnight=new Date(`${key}T00:00:00+08:00`).getTime()+86400000;const next=Math.min(midnight,end);days[key]=(days[key]??0)+next-cursor;cursor=next;}
+  return days;
 }

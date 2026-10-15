@@ -1,8 +1,12 @@
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { LearningStore, AppError } from './store.mjs';
+import { lessonId } from './store.mjs';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export function createApiServer({ dataRoot, now, fallback } = {}) {
+export function createApiServer({ dataRoot, now, fallback, projectRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..') } = {}) {
   const store = new LearningStore(dataRoot, now);
   const token = randomBytes(32).toString('hex');
   const server = http.createServer(async (req, res) => {
@@ -16,6 +20,13 @@ export function createApiServer({ dataRoot, now, fallback } = {}) {
       if (origin && origin !== `http://${host}`) throw new AppError(403, '不允许跨来源访问');
       if (req.method === 'GET' && url.pathname === '/api/state') return send(200, { ...await store.state(), token });
       if (req.method === 'GET' && url.pathname === '/api/export') return send(200, { schemaVersion: 1, exportedAt: new Date().toISOString(), ...await store.state() });
+      const exercise=url.pathname.match(/^\/api\/exercises\/(lesson-\d{2})$/);
+      if(req.method==='GET'&&exercise){
+        const id=lessonId(exercise[1]);const directory=path.join(projectRoot,'exercises',id.replace('-',''));
+        const allowed=name=>/^[\w.-]+\.(cpp|h|hpp|txt|md)$/.test(name)||name==='CMakeLists.txt';
+        const readFiles=async(dir,contents)=>{const entries=await fs.readdir(dir,{withFileTypes:true});return Promise.all(entries.filter(e=>e.isFile()&&allowed(e.name)).sort((a,b)=>a.name.localeCompare(b.name)).map(async e=>({name:e.name,...(contents?{content:await fs.readFile(path.join(dir,e.name),'utf8')}:{})})));};
+        try{return send(200,{directory,workingFiles:await readFiles(directory,false),referenceFiles:await readFiles(path.join(directory,'reference'),true)});}catch(error){if(error.code==='ENOENT')throw new AppError(404,'本课练习文件尚未找到，请检查 exercises 目录');throw error;}
+      }
       if (!['POST', 'PUT', 'DELETE'].includes(req.method)) throw new AppError(404, '接口不存在');
       if (req.headers['x-lab-token'] !== token) throw new AppError(403, '页面会话已过期，请刷新网站。草稿会保留。');
       if (!req.headers['content-type']?.startsWith('application/json')) throw new AppError(415, '需要 JSON 请求');
@@ -29,8 +40,9 @@ export function createApiServer({ dataRoot, now, fallback } = {}) {
         if (typeof data.restore !== 'boolean') throw new AppError(400, '恢复参数格式不正确');
         return send(200, await store.recover(data.restore));
       }
-      if (req.method === 'POST' && url.pathname === '/api/timer/claim') return send(200, await store.claim(data.clientId, data.lessonId));
-      if (req.method === 'POST' && url.pathname === '/api/timer/pulse') return send(200, await store.pulse(data));
+      if (req.method === 'POST' && url.pathname === '/api/timer/start') return send(200, await store.startElapsed(data));
+      if (req.method === 'POST' && url.pathname === '/api/timer/update') return send(200, await store.updateElapsed(data));
+      if (req.method === 'POST' && url.pathname === '/api/timer/recover') return send(200, await store.updateElapsed(data,true));
       const session = url.pathname.match(/^\/api\/sessions\/([a-f0-9-]+)$/i);
       if (session && req.method === 'PUT') return send(200, await store.manual(data, session[1]));
       if (session && req.method === 'DELETE') return send(200, await store.deleteSession(session[1], data.revision));

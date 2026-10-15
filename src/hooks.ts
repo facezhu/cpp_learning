@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, download } from './lib';
 import type { LessonRecord, Session } from './types';
-import { pauseReason, activeDelta } from './timer-policy.mjs';
+export { useStudyTimer } from './study-timer';
 const editorClientId=crypto.randomUUID();
 
 export function useLessonRecord(initial: LessonRecord, onSaved: (record: LessonRecord) => void) {
@@ -78,66 +78,4 @@ export function useLessonRecord(initial: LessonRecord, onSaved: (record: LessonR
     else{setStatus('已恢复草稿，等待保存');void flush();}
   };
   return { record, change, status, conflict, resolve, flush, otherDrafts, restoreOther, exportOther:()=>download(`${initial.id}-all-drafts.json`,JSON.stringify(otherDrafts,null,2)), exportDraft: () => download(`${initial.id}-draft.json`, JSON.stringify(ref.current, null, 2)) };
-}
-
-export function useStudyTimer(lessonId: string | null, ready: boolean, onSession: (session: Session) => void) {
-  const [status, setStatus] = useState('浏览课程后开始');
-  const [paused, setPaused] = useState(false);
-  const [pending, setPending] = useState(0);
-  const [retry, setRetry] = useState(0);
-  const activity = useRef(Date.now());
-  const onSessionRef = useRef(onSession); onSessionRef.current = onSession;
-  useEffect(() => {
-    const touch = () => { activity.current = Date.now(); };
-    const events = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
-    for (const e of events) window.addEventListener(e, touch, { passive: true, capture: true });
-    window.addEventListener('focus', touch);
-    return () => { for (const e of events) window.removeEventListener(e, touch, true); window.removeEventListener('focus', touch); };
-  }, []);
-  useEffect(() => {
-    if (!ready || !lessonId) { setStatus('浏览课程后开始'); setPending(0); return; }
-    let disposed = false; let id: string | null = null; let seq = 0; let accrued = 0;
-    let last = performance.now(); let lastSent = performance.now(); let busy = false; let nextClaim = 0;
-    let previousEligible = false; const clientId = crypto.randomUUID();
-    const reason = () => pauseReason({ paused, hidden: document.hidden, focused: document.hasFocus(), now: Date.now(), lastActivity: activity.current });
-    async function pulse(release: boolean) {
-      if (!id || busy) return;
-      busy = true;
-      const sessionId = id; const delta = Math.min(20000, accrued); accrued = 0; setPending(0);
-      const request = { clientId, sessionId, seq: ++seq, deltaMs: delta, release };
-      try {
-        const result = await api<{ acquired: boolean; record?: Session }>('timer/pulse', 'POST', request, release);
-        if (result.record) onSessionRef.current(result.record);
-        if (!result.acquired) id = null;
-      } catch {
-        // No fabricated catch-up time after a network failure. Retry the same sequence once.
-        try { const r = await api<{ acquired: boolean; record?: Session }>('timer/pulse', 'POST', request); if (r.record) onSessionRef.current(r.record); } catch { /* Existing file remains authoritative. */ }
-        id = null; accrued = 0; setStatus('计时连接中断，等待重新连接');
-      } finally { busy = false; lastSent = performance.now(); if (disposed && id) void pulse(true); }
-    }
-    async function tick() {
-      const now = performance.now(); const elapsed = now - last; last = now;
-      const why = reason(); const eligible = !why;
-      accrued += activeDelta(elapsed, eligible, previousEligible, !!id);
-      previousEligible = eligible;
-      setPending(accrued);
-      if (why) { setStatus(why); if (id) await pulse(true); return; }
-      if (id) { setStatus('正在记录网页学习'); if (now - lastSent >= 15000) await pulse(false); }
-      else if (!busy && now > nextClaim) {
-        busy = true; nextClaim = now + 5000;
-        try {
-          const claim = await api<{ acquired: boolean; sessionId?: string; seq: number }>('timer/claim', 'POST', { clientId, lessonId });
-          if (claim.acquired) { id = claim.sessionId!; seq = claim.seq; accrued = 0; last = performance.now(); lastSent = last; setStatus('正在记录网页学习'); }
-          else setStatus('另一标签页正在计时');
-        } catch { setStatus('计时服务未连接'); }
-        finally { busy = false; if (disposed && id) void pulse(true); }
-      }
-    }
-    const visibility = () => { void tick(); };
-    const handle = setInterval(() => { if (!disposed) void tick(); }, 1000);
-    window.addEventListener('blur', visibility); document.addEventListener('visibilitychange', visibility);
-    void tick();
-    return () => { disposed = true; clearInterval(handle); window.removeEventListener('blur', visibility); document.removeEventListener('visibilitychange', visibility); if (id) void pulse(true); };
-  }, [lessonId, ready, paused, retry]);
-  return { status, paused, pending, toggle: () => setPaused(v => !v), retry: () => setRetry(v => v + 1) };
 }

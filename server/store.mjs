@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { elapsedDays } from '../src/timer-policy.mjs';
 
 export class AppError extends Error {
   constructor(status, message, details) { super(message); this.status = status; this.details = details; }
@@ -20,16 +21,17 @@ export const hkDate = dateKey;
 export const emptyLesson = id => ({ schemaVersion: 1, id, revision: 0, completed: false, historical: false, checks: [], notes: '', code: '', answers: {}, updatedAt: null });
 export function validateLesson(v, id) {
   if (!object(v) || v.schemaVersion !== 1 || v.id !== id || !Number.isInteger(v.revision) || v.revision < 0 || typeof v.completed !== 'boolean' || typeof v.historical !== 'boolean') throw new AppError(400, '课程记录格式不正确');
-  if (!Array.isArray(v.checks) || v.checks.length > 20 || v.checks.some(x => typeof x !== 'boolean') || !object(v.answers) || Object.keys(v.answers).length > 10) throw new AppError(400, '自查或面试记录格式不正确');
+  if (!Array.isArray(v.checks) || v.checks.length > 20 || v.checks.some(x => typeof x !== 'boolean') || !object(v.answers) || Object.keys(v.answers).length > 40) throw new AppError(400, '自查或面试记录格式不正确');
   text(v.notes, 100000); text(v.code, 300000);
   for (const [key, answer] of Object.entries(v.answers)) {
-    if (!/^q[1-5]$/.test(key) || !object(answer) || !['review', 'mastered'].includes(answer.status)) throw new AppError(400, '面试回答格式不正确');
+    if (!/^q([1-9]|[12]\d|3\d|40)$/.test(key) || !object(answer) || !['review', 'mastered'].includes(answer.status)) throw new AppError(400, '面试回答格式不正确');
     text(answer.text, 30000);
   }
   return v;
 }
 function validateSession(s, id) {
-  if (!object(s) || s.schemaVersion !== 1 || s.id !== id || !['auto', 'manual'].includes(s.source) || !Number.isInteger(s.revision) || s.revision < 1 || typeof s.deleted !== 'boolean' || !Number.isFinite(s.durationMs) || s.durationMs < 0 || !object(s.days)) throw new AppError(400, '计时记录格式不正确');
+  if (!object(s) || ![1,2].includes(s.schemaVersion) || s.id !== id || !['auto', 'manual'].includes(s.source) || !Number.isInteger(s.revision) || s.revision < 1 || typeof s.deleted !== 'boolean' || !Number.isFinite(s.durationMs) || s.durationMs < 0 || !object(s.days)) throw new AppError(400, '计时记录格式不正确');
+  if(s.schemaVersion===2){uuid(s.clientId);if(!Number.isFinite(s.startedAt)||s.startedAt<946684800000||!(s.endedAt===null||Number.isFinite(s.endedAt)&&s.endedAt>=s.startedAt))throw new AppError(400,'起止时间格式不正确');}
   lessonId(s.lessonId); text(s.note, 10000);
   let total = 0;
   for (const [date, ms] of Object.entries(s.days)) { if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(ms) || ms < 0) throw new AppError(400, '每日计时格式不正确'); total += ms; }
@@ -38,7 +40,7 @@ function validateSession(s, id) {
 }
 
 export class LearningStore {
-  constructor(root, now = () => Date.now()) { this.root = path.resolve(root); this.now = now; this.queue = Promise.resolve(); this.lease = null; }
+  constructor(root, now = () => Date.now()) { this.root = path.resolve(root); this.now = now; this.queue = Promise.resolve(); this.activeElapsed = null; }
   exclusive(fn) { const result = this.queue.then(fn); this.queue = result.catch(() => {}); return result; }
   async read(file, fallback, validate = v => v) {
     try { return validate(JSON.parse(await fs.readFile(path.join(this.root, file), 'utf8'))); }
@@ -121,43 +123,63 @@ export class LearningStore {
       await this.write(`sessions/${id}.json`, next); return next;
     });
   }
-  claim(clientId, id) {
-    return this.exclusive(async () => {
-      uuid(clientId); lessonId(id);
-      const now = this.now();
-      if (this.lease && now < this.lease.expires && this.lease.clientId !== clientId) return { acquired: false };
-      if (this.lease?.clientId === clientId && this.lease.lessonId === id && now < this.lease.expires) return { acquired: true, sessionId: this.lease.id, seq: this.lease.seq };
-      const sessionId = randomUUID();
-      const record = { schemaVersion: 1, id: sessionId, lessonId: id, source: 'auto', revision: 1, durationMs: 0, days: {}, note: '', createdAt: new Date(now).toISOString(), updatedAt: new Date(now).toISOString(), deleted: false };
-      await this.write(`sessions/${sessionId}.json`, record);
-      this.lease = { id: sessionId, lessonId: id, clientId, last: now, expires: now + 25000, seq: 0 };
-      return { acquired: true, sessionId, seq: 0 };
+  startElapsed(data) {
+    return this.exclusive(async()=>{
+      uuid(data.clientId);uuid(data.sessionId);lessonId(data.lessonId);
+      const now=this.now();
+      if(!Number.isFinite(data.startedAt)||data.startedAt<946684800000||data.startedAt>now+5000)throw new AppError(400,'开始时间无效');
+      const file=`sessions/${data.sessionId}.json`;
+      const existing=await this.read(file,null,v=>validateSession(v,data.sessionId));
+      if(existing&&(existing.clientId!==data.clientId||existing.lessonId!==data.lessonId||existing.startedAt!==data.startedAt))throw new AppError(409,'计时编号已使用');
+      if(!this.activeElapsed){
+        for(const old of await this.sessions())if(old.schemaVersion===2&&old.endedAt===null&&old.id!==data.sessionId)await this.write(`sessions/${old.id}.json`,{...old,endedAt:old.startedAt+old.durationMs,revision:old.revision+1,updatedAt:new Date(now).toISOString()});
+      }
+      if(existing){
+        if(existing.endedAt!==null)return {acquired:false,record:existing};
+        if(!this.activeElapsed)this.activeElapsed={id:existing.id,clientId:existing.clientId,startedAt:existing.startedAt};
+        return {acquired:this.activeElapsed.id===existing.id,record:existing};
+      }
+      const stale=this.activeElapsed&&this.activeElapsed.startedAt>data.startedAt;
+      if(this.activeElapsed&&!stale){
+        const oldId=this.activeElapsed.id;
+        const previous=await this.read(`sessions/${oldId}.json`,null,v=>validateSession(v,oldId));
+        // Do not invent time after a potentially crashed page. A live old page
+        // may send its final cumulative value, bounded by this takeover.
+        if(previous)await this.write(`sessions/${oldId}.json`,{...previous,endedAt:Math.max(previous.startedAt+previous.durationMs,data.startedAt),revision:previous.revision+1,updatedAt:new Date(now).toISOString()});
+      }
+      const record={schemaVersion:2,id:data.sessionId,clientId:data.clientId,lessonId:data.lessonId,startedAt:data.startedAt,endedAt:stale?this.activeElapsed.startedAt:null,source:'auto',revision:1,durationMs:0,days:{},note:'打开课程至退出页面',createdAt:new Date(now).toISOString(),updatedAt:new Date(now).toISOString(),deleted:false};
+      await this.write(file,record);if(!stale)this.activeElapsed={id:record.id,clientId:record.clientId,startedAt:record.startedAt};return {acquired:!stale,record};
     });
   }
-  pulse(data) {
-    return this.exclusive(async () => {
-      uuid(data.clientId); uuid(data.sessionId);
-      const lease = this.lease; const now = this.now();
-      if (!lease || lease.clientId !== data.clientId || lease.id !== data.sessionId || now > lease.expires) { if (lease?.id === data.sessionId) this.lease = null; return { acquired: false }; }
-      if (!Number.isInteger(data.seq) || data.seq < 1 || !Number.isFinite(data.deltaMs) || data.deltaMs < 0 || data.deltaMs > 20000 || typeof data.release !== 'boolean') throw new AppError(400, '心跳格式不正确');
-      const record = await this.read(`sessions/${lease.id}.json`, null, v => validateSession(v, lease.id));
-      if (!record) throw new AppError(503, '计时文件缺失，请重新开始计时。');
-      if (data.seq <= lease.seq) return { acquired: true, record }; // Retry is idempotent.
-      if (data.seq !== lease.seq + 1) throw new AppError(409, '计时序号不连续，请重新开始');
-      const ms = Math.floor(Math.max(0, Math.min(data.deltaMs, now - lease.last, 20000)));
-      const days = { ...record.days };
-      const start = now - ms;
-      if (dateKey(start) === dateKey(now)) days[dateKey(now)] = (days[dateKey(now)] ?? 0) + ms;
-      else {
-        const midnight = new Date(`${dateKey(now)}T00:00:00+08:00`).getTime();
-        days[dateKey(start)] = (days[dateKey(start)] ?? 0) + midnight - start;
-        days[dateKey(now)] = (days[dateKey(now)] ?? 0) + now - midnight;
+  updateElapsed(data,recover=false) {
+    return this.exclusive(async()=>{
+      uuid(data.clientId);uuid(data.sessionId);
+      if(!Number.isFinite(data.elapsedMs)||data.elapsedMs<0||typeof data.ended!=='boolean')throw new AppError(400,'累计时长格式不正确');
+      const file=`sessions/${data.sessionId}.json`;
+      let current=await this.read(file,null,v=>validateSession(v,data.sessionId));
+      if(!current&&recover){
+        lessonId(data.lessonId);const now=this.now();
+        if(!Number.isFinite(data.startedAt)||data.startedAt<946684800000||data.startedAt>now+5000||data.elapsedMs>Math.max(0,now-data.startedAt)+5000)throw new AppError(400,'恢复计时的起止时间无效');
+        // A failed first start can be recovered as a finished historical record.
+        // This operation never takes ownership away from an actually live tab.
+        const durationMs=Math.floor(data.elapsedMs);
+        current={schemaVersion:2,id:data.sessionId,clientId:data.clientId,lessonId:data.lessonId,startedAt:data.startedAt,endedAt:data.startedAt+durationMs,source:'auto',revision:1,durationMs,days:elapsedDays(data.startedAt,durationMs),note:'恢复已测量的未保存计时',createdAt:new Date(now).toISOString(),updatedAt:new Date(now).toISOString(),deleted:false};
+        await this.write(file,current);return {acquired:false,record:current};
       }
-      const next = { ...record, durationMs: record.durationMs + ms, days, revision: record.revision + 1, updatedAt: new Date(now).toISOString() };
-      await this.write(`sessions/${lease.id}.json`, next);
-      lease.seq = data.seq; lease.last = now; lease.expires = now + 25000;
-      if (data.release) this.lease = null;
-      return { acquired: !data.release, record: next };
+      if(!current||current.schemaVersion!==2||current.clientId!==data.clientId)throw new AppError(409,'本次计时不存在，请重新打开课程');
+      const now=this.now();
+      if(data.elapsedMs>Math.max(0,now-current.startedAt)+5000)throw new AppError(400,'累计时间超出实际经过时间');
+      if(current.endedAt!==null&&!data.ended)return {acquired:false,record:current};
+      const limit=current.endedAt===null?Infinity:current.endedAt-current.startedAt;
+      const durationMs=Math.max(current.durationMs,Math.floor(Math.min(limit,data.elapsedMs)));
+      const endedAt=current.endedAt??(data.ended?current.startedAt+durationMs:null);
+      const changed=durationMs!==current.durationMs||endedAt!==current.endedAt;
+      const record=changed?{...current,durationMs,days:elapsedDays(current.startedAt,durationMs),endedAt,revision:current.revision+1,updatedAt:new Date(now).toISOString()}:current;
+      if(changed)await this.write(file,record);
+      if(data.ended&&this.activeElapsed?.id===current.id)this.activeElapsed=null;
+      if(!recover&&!data.ended&&record.endedAt===null&&!this.activeElapsed)this.activeElapsed={id:current.id,clientId:current.clientId,startedAt:current.startedAt};
+      if(!data.ended&&this.activeElapsed?.id!==current.id)return {acquired:false,record};
+      return {acquired:!data.ended&&record.endedAt===null,record};
     });
   }
 }

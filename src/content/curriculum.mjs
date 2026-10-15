@@ -1,3 +1,10 @@
+import { basicLectures } from './lectures-basic.mjs';
+import { advancedLectures } from './lectures-advanced.mjs';
+import { expandQuestions } from './interviews.mjs';
+import { historicalExamples } from './historical-examples.mjs';
+import { historicalDiagrams, historicalHighlight } from './historical-diagrams.mjs';
+import { polymorphismLecture } from './lecture-polymorphism.mjs';
+
 export const stages = [
   { id: 0, name: '语言的地基', range: '01 — 08', description: '让程序接收输入，做出判断，组织数据。' },
   { id: 1, name: '构建角色世界', range: '09 — 14', description: '用对象、组合与多态描述角色和武器。' },
@@ -7,6 +14,8 @@ export const stages = [
 ];
 
 function make(n, title, subtitle, data) {
+  data={...data,...historicalExamples[n]};
+  if(historicalDiagrams[n])data.frames=historicalDiagrams[n];
   const stage = n <= 8 ? 0 : n <= 14 ? 1 : n <= 22 ? 2 : n <= 26 ? 3 : 4;
   const files = data.files ?? [{ name: `lesson${n}.cpp`, content: data.code }];
   const starterFiles = data.starterFiles ?? [{ name: `lesson${n}.cpp`, content: data.starter }];
@@ -14,10 +23,11 @@ function make(n, title, subtitle, data) {
     n, id: `lesson-${String(n).padStart(2, '0')}`, title, subtitle, stage, minutes: n > 26 ? 65 : n > 14 ? 45 : 30,
     kind: data.kind ?? 'flow', ...data, files, starterFiles,
     code: data.code ?? files.find(f => f.name.endsWith('.cpp'))?.content ?? files[0].content,
-    questions: data.questions.map(([q, a], i) => ({ id: `q${i + 1}`, q, a })),
+    lecture:n===14?polymorphismLecture:basicLectures[n]??advancedLectures[n],
+    questions: expandQuestions(n,data.questions.map(([q, a], i) => ({ id: `q${i + 1}`, q, a }))),
     checklist: data.checklist ?? data.tasks,
     memory: { rule: data.rule, example: data.example, trap: data.trap },
-    frames: data.frames.map(([title, nodes, explanation, lines]) => ({ title, nodes: nodes.map(([label, value]) => ({ label, value })), explanation, lines: lines ?? [] })),
+    frames: data.frames.map(([title, nodes, explanation, lines],step) => ({ title, nodes: nodes.map(([label, value]) => ({ label, value })), explanation, lines: historicalDiagrams[n]?historicalHighlight(n,data.code,step):lines ?? [] })),
     hints: data.hints ?? ['先写出数据和函数接口，再填入实现；每增加一小段就编译。', '用题目里的正常样例走一遍，再检查 0、空值或边界条件。', '对照下方参考解答，定位第一处行为差异，然后自己修改。']
   };
 }
@@ -75,7 +85,7 @@ const l4 = make(4, '循环：重复，但有出口', '累计数值与战斗回�
 const l5 = make(5, '函数与作用域', '把一段流程拆成可复用动作', {
   scene: '把上一课的输入、计算、输出分开，之后攻击、治疗、存档也能遵循这种接口设计。重点解开“函数声明是否先执行”的疑惑。', objectives: ['区分声明、定义、调用', '追踪参数与返回值', '理解局部作用域'],
   sections: [['声明不会执行', 'int sumTo(int n); 告诉编译器函数的名字、参数和返回类型。程序仍从 main 开始，只有执行到 sumTo(3) 这样的调用表达式才进入函数体。'], ['参数与返回', '调用时实参给形参提供初始值。函数计算完成后用 return 把结果交回调用位置，然后 main 继续执行。按值形参是独立局部变量，修改它不会直接修改调用者的变量。'], ['局部作用域', '函数里的局部变量只能在其作用域内使用。两个函数可以各有一个名叫 result 的局部变量，它们不是同一个对象。不要返回指向已经销毁的局部对象的指针或引用。'], ['游戏接口', 'calculateDamage 可以只负责计算，applyDamage 负责改变角色状态。小函数把职责说清楚，也让调试和测试更容易。']],
-  code: '#include <iostream>\nint sumTo(int n);\n\nint main()\n{\n    const int result = sumTo(3);\n    std::cout << "Result: " << result << "\\n";\n}\n\nint sumTo(int n)\n{\n    int sum = 0;\n    for (int i = 1; i <= n; ++i) { sum += i; }\n    return sum;\n}\n', starter: '#include <iostream>\nint sumTo(int n);\nint main()\n{\n    // TODO: 调用 sumTo(3) 并输出返回值。\n}\n// TODO: 定义 sumTo，n<=0 时返回0。\n', tasks: ['先声明 sumTo，再在 main 后定义它。', '在 main 中调用并保存返回值。', '测试 sumTo(3)==6 和 sumTo(0)==0。'], challenge: '增加 readPositiveNumber 和 printResult，解释 main 的执行次序。', expected: 'Result: 6', verify: ['Result: 6'],
+  code: '#include <iostream>\nint sumTo(int n);\n\nint main()\n{\n    const int result = calculateSum(3);\n    std::cout << "Result: " << result << "\\n";\n}\n\nint sumTo(int n)\n{\n    int sum = 0;\n    for (int i = 1; i <= n; ++i) { sum += i; }\n    return sum;\n}\n', starter: '#include <iostream>\nint sumTo(int n);\nint main()\n{\n    // TODO: 调用 sumTo(3) 并输出返回值。\n}\n// TODO: 定义 sumTo，n<=0 时返回0。\n', tasks: ['先声明 sumTo，再在 main 后定义它。', '在 main 中调用并保存返回值。', '测试 sumTo(3)==6 和 sumTo(0)==0。'], challenge: '增加 readPositiveNumber 和 printResult，解释 main 的执行次序。', expected: 'Result: 6', verify: ['Result: 6'],
   frames: [['进入 main', [['声明', '只描述接口'], ['调用点', 'sumTo(3)'], ['形参 n', '收到 3']], '声明不执行，调用才进入 sumTo。', [2, 6]], ['进入函数', [['main', '等待结果'], ['sumTo', 'sum = 6'], ['返回', 'return sum']], '函数的局部变量在自己的调用中使用。', [10, 12, 13, 14]], ['回到 main', [['返回值', '6'], ['result', '6'], ['下一句', '输出 Result']], '调用表达式的值成为 result 的初始值。', [6, 7]]], rule: '声明让编译器认识函数；调用让程序进入函数。', example: 'int result = sumTo(3);', trap: '源文件中写在 main 前面，不代表运行时先执行。',
   questions: [['声明与定义有什么区别？', '声明给出接口；定义提供函数体。同一个普通函数可以有多处兼容声明，但需要满足定义规则。'], ['返回值回到哪里？', '回到调用表达式所在的位置，然后继续执行调用者的后续流程。'], ['按值传参会改变调用者变量吗？', '不会直接改变，因为形参是独立对象。后续使用引用或指针才能间接修改原对象。']]
 });
@@ -347,7 +357,7 @@ const l31 = make(31, '碰撞、重叠与伤害事件', '从相遇到状态变化
 const l32 = make(32, '综合场景：收集与生存', '做出一个可以玩的学习成果', ueData({
   scene: '在一个小型关卡里移动，收集3个物品并避开伤害区域。把输入、组件、碰撞和完成条件连接成可验收的小玩法。', kind:'object', objectives: ['整合已有系统', '用组件保存得分', '验证完整玩家流程'],
   sections: [['先完成最小闭环', '开始Play后角色能移动，触碰物品能得分，收集3个出现Level complete日志。这是首个可玩闭环；先验收它，再增加美术、UI或更大地图。'], ['组件维护分数', 'LabScoreComponent保存Score和Goal，AddPoint统一检查完成条件。Pickup查询目标是否具有这个组件，只向合格对象加分，不依赖角色具体类名。'], ['事件只能计算一次', 'Pickup重叠后立即关闭碰撞，再加分并销毁。三个独立实例各贡献1分。角色蓝图通过Add Component添加Score与Health，不需要复制分数逻辑。'], ['完成与失败的扩展', '当前样例完成条件用日志表达，生命值用第29课组件维护。失败界面、重新开始与存档是选做扩展，不能把只有日志的原型描述成已完成商业游戏。']],
-  files: [...explorerFiles,...healthFiles,...hazardFiles,...scoreFiles], tasks: ['从第30课角色和输入资产继续；把下载源码加入EngineLab，Build.cs包含EnhancedInput。', 'BP_Explorer添加LabScore和LabHealth，Goal设3；确保Player0控制。', '创建BP_Pickup，给Mesh指定球或立方体，缩小到适当尺寸；在带地面的关卡放3个实例和1个LabHazard。', '完整Play：移动、受伤、收集3次；检查Score逐次增加且只出现一次Level complete。保存关卡与蓝图。'], challenge: '用UMG显示生命与分数；死亡后禁用输入并提供重新开始，完成后保存最高分。', expected: 'Score: 1 / 3\nScore: 2 / 3\nScore: 3 / 3\nLevel complete!\n每个收集物只计分一次。',
+  files: [...explorerFiles,...healthFiles,...hazardFiles,...scoreFiles], tasks: ['从第30课角色和输入资产继续；把本课源码加入EngineLab，Build.cs包含EnhancedInput。', 'BP_Explorer添加LabScore和LabHealth，Goal设3；确保Player0控制。', '创建BP_Pickup，给Mesh指定球或立方体，缩小到适当尺寸；在带地面的关卡放3个实例和1个LabHazard。', '完整Play：移动、受伤、收集3次；检查Score逐次增加且只出现一次Level complete。保存关卡与蓝图。'], challenge: '用UMG显示生命与分数；死亡后禁用输入并提供重新开始，完成后保存最高分。', expected: 'Score: 1 / 3\nScore: 2 / 3\nScore: 3 / 3\nLevel complete!\n每个收集物只计分一次。',
   frames: [['组装玩家', [['Character', '输入与移动'], ['Health组件', '生命值100'], ['Score组件', '0 / 3']], '能力由组件组合，而不是把所有逻辑塞进一个函数。'], ['收集', [['Pickup Overlap', '找到Score组件'], ['AddPoint()', '0→1'], ['Pickup', '关闭碰撞并销毁']], '每次事件改变一处明确状态。'], ['完成闭环', [['第三个Pickup', 'Score=3'], ['Goal', '3'], ['日志', 'Level complete!']], '从玩家输入到世界反馈，形成可验收流程。']], rule: '先完成一个可玩闭环，再扩展表现与规模。', example: 'OtherActor->FindComponentByClass<ULabScoreComponent>();', trap: 'C++源码不包含蓝图和关卡资产，必须保存并提交相应Content文件。',
   questions: [['怎样减少拾取物对具体角色类的依赖？', '查询需要的组件或通过接口表达能力，让拾取物依赖“能得分”而不是某个角色子类。'], ['怎么验证同一物品不会重复计分？', '多次进入、多个碰撞组件同时接触，确认一次关闭碰撞并销毁，仅产生一次AddPoint。'], ['如何划分最小可玩版本？', '明确输入、状态改变、反馈与结束条件，先让完整流程可验证，再增加UI、美术和联网功能。']]
 }));

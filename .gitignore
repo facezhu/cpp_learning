@@ -7,3 +7,16 @@ dist/
 *.tsbuildinfo
 *.tmp
 .DS_Store
+# Native exercise executables and CMake output on macOS/Linux
+exercises/lesson[0-9][0-9]/lesson[0-9]
+exercises/lesson[0-9][0-9]/lesson[0-9][0-9]
+exercises/lesson[0-9][0-9]/reference/lesson[0-9]
+exercises/lesson[0-9][0-9]/reference/lesson[0-9][0-9]
+exercises/*/lesson
+exercises/*/reference/lesson
+exercises/**/a.out
+exercises/**/build/
+exercises/**/battle
+*.o
+*.obj
+*.dSYM/

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.13.0" },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "dev": "node server/index.mjs",
     "build": "tsc -b && vite build",
@@ -12,18 +14,17 @@
     "check:cpp": "node scripts/check-cpp.mjs"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "highlight.js": "^11.11.1",
     "lucide-react": "^0.468.0",
-    "jszip": "^3.10.1",
-    "highlight.js": "^11.11.1"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "vite": "^7.3.0",
-    "@vitejs/plugin-react": "^5.1.0",
+    "@types/node": "^22.19.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@types/node": "^22.19.0"
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0"
   }
 }
