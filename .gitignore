@@ -1,0 +1,9 @@
+node_modules/
+.vite/
+dist/
+.runtime/
+.test-output/
+*.exe
+*.tsbuildinfo
+*.tmp
+.DS_Store

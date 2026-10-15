@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "3d976541-13cc-4c04-bf25-c0c6a1a940bb",
+  "lessonId": "lesson-03",
+  "source": "auto",
+  "revision": 2,
+  "durationMs": 14998,
+  "days": {
+    "2026-10-15": 14998
+  },
+  "note": "",
+  "createdAt": "2026-10-15T03:39:54.727Z",
+  "updatedAt": "2026-10-15T03:40:09.861Z",
+  "deleted": false
+}

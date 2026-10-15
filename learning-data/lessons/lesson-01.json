@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "lesson-01",
+  "revision": 3,
+  "completed": true,
+  "historical": true,
+  "checks": [
+    false
+  ],
+  "notes": "",
+  "code": "",
+  "answers": {
+    "q3": {
+      "text": "",
+      "status": "review"
+    }
+  },
+  "updatedAt": "2026-10-15T03:44:48.713Z"
+}
