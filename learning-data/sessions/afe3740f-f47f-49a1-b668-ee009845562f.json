@@ -6,13 +6,13 @@
   "startedAt": 1792123683745,
   "endedAt": null,
   "source": "auto",
-  "revision": 14,
-  "durationMs": 237842,
+  "revision": 16,
+  "durationMs": 357842,
   "days": {
-    "2026-10-16": 237842
+    "2026-10-16": 357842
   },
   "note": "打开课程至退出页面",
   "createdAt": "2026-10-16T04:08:03.747Z",
-  "updatedAt": "2026-10-16T04:12:01.592Z",
+  "updatedAt": "2026-10-16T04:14:01.591Z",
   "deleted": false
 }
