@@ -1,19 +1,21 @@
 import { lessons } from '../src/content/curriculum.mjs';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const output=path.join(root,'.test-output/cpp');
+const tempRoot=await fs.realpath(os.tmpdir());
+const output=await fs.mkdtemp(path.join(tempRoot,'cpp-engine-check-'));
 const compiler=process.env.CPP_COMPILER || (process.platform==='win32'?'C:/msys64/ucrt64/bin/g++.exe':'g++');
 const env={...process.env,PATH:`${path.dirname(compiler)}${path.delimiter}${process.env.PATH??''}`};
-await fs.mkdir(output,{recursive:true});
 const report=[];
 function run(command,args,cwd,input='') {
   const result=spawnSync(command,args,{cwd,input,encoding:'utf8',env,timeout:20000,windowsHide:true});
   if(result.error||result.status!==0)throw new Error(`${command} ${args.join(' ')}\n${result.error?.message??''}\n${result.stderr}\n${result.stdout}`);
   return result;
 }
+try {
 for(const lesson of lessons.filter(l=>l.n<=26)) {
   const cwd=path.join(output,lesson.id);await fs.mkdir(cwd,{recursive:true});
   for(const file of lesson.files)await fs.writeFile(path.join(cwd,file.name),await fs.readFile(path.join(root,'exercises',`lesson${String(lesson.n).padStart(2,'0')}`,'reference',file.name)));
@@ -42,15 +44,26 @@ await fs.writeFile(path.join(dispatchDir,'invalid.cpp'),'struct Base {virtual vo
 const invalid=spawnSync(compiler,['-std=c++17','-c','invalid.cpp'],{cwd:dispatchDir,encoding:'utf8',env,windowsHide:true});if(invalid.status===0||invalid.error)throw Error('override mismatch did not produce expected compiler error');
 // Compile the actual complete explanatory snippets as well as the disk reference.
 const lecture=lessons[13].lecture;
+function lectureCode(id) {
+  const section=lecture.find(section=>section.id===id);
+  if(!section?.code)throw new Error(`Lesson14 is missing the executable lecture section ${id}`);
+  return section.code;
+}
 for(const [label,code,wanted] of [
-  ['static',lecture[3].code,'Warrior::attack\nCharacter::attack'],
-  ['virtual',lecture[5].code,'Warrior::attack\nWarrior::attack'],
-  ['destructor',lecture[18].code,'Warrior destroyed\nCharacter destroyed'],
-  ['integrated',['#include <algorithm>','#include <iostream>','#include <string>',...([12,13,14,17,20].map(i=>lecture[i].code))].join('\n'),'Mage mana: 60']
+  ['static',lectureCode('l14-static-demo'),'Warrior::attack\nCharacter::attack'],
+  ['virtual',lectureCode('l14-virtual-demo'),'Warrior::attack\nWarrior::attack'],
+  ['destructor',lectureCode('l14-destruction-demo'),'Warrior destroyed\nCharacter destroyed'],
+  ['integrated',['#include <algorithm>','#include <iostream>','#include <string>',...(['l14-character','l14-warrior','l14-mage','l14-battle','l14-main'].map(lectureCode))].join('\n'),'Mage mana: 60']
 ]){
   const file=`lecture-${label}.cpp`;await fs.writeFile(path.join(dispatchDir,file),code);const executable=path.join(dispatchDir,`lecture-${label}${process.platform==='win32'?'.exe':''}`);
   run(compiler,['-std=c++17','-Wall','-Wextra','-pedantic','-Werror',file,'-o',executable],dispatchDir);
   if(!run(executable,[],dispatchDir).stdout.replace(/\r/g,'').includes(wanted))throw Error(`Lecture14 ${label} output mismatch`);
 }
-await fs.writeFile(path.join(output,'report.json'),JSON.stringify({testedAt:new Date().toISOString(),compiler,report,draw:'pass',dispatch:'pass',invalidOverride:'expected compiler rejection',lecture14:'4 actual lecture examples pass',unreal:'Not compiled; UE 5.6 editor/toolchain not available in this validation'},null,2));
+console.log(JSON.stringify({testedAt:new Date().toISOString(),compiler,references:report.length,boundaryCases:report.reduce((n,r)=>n+r.boundaryCases,0),draw:'pass',dispatch:'pass',invalidOverride:'expected compiler rejection',lecture14:'4 actual lecture examples pass',unreal:'Not compiled; UE 5.6 editor/toolchain not available in this validation'},null,2));
 console.log(`\n26 references passed, ${report.reduce((n,r)=>n+r.boundaryCases,0)} input boundaries passed, bounded draw and dispatch passed, invalid override rejected. UE examples not compiled.`);
+} finally {
+  // Only remove this run's known temporary directory; never clean the project.
+  const resolvedOutput=path.resolve(output);
+  if(path.dirname(resolvedOutput)!==tempRoot || !path.basename(resolvedOutput).startsWith('cpp-engine-check-'))throw new Error(`Unsafe test cleanup target: ${resolvedOutput}`);
+  await fs.rm(resolvedOutput,{recursive:true,force:true});
+}

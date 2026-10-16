@@ -1,12 +1,17 @@
 {
   "schemaVersion": 1,
   "id": "lesson-09",
-  "revision": 1,
+  "revision": 2,
   "completed": true,
   "historical": true,
   "checks": [],
   "notes": "",
   "code": "",
-  "answers": {},
-  "updatedAt": "2026-10-15T03:39:39.948Z"
+  "answers": {
+    "q2": {
+      "text": "",
+      "status": "review"
+    }
+  },
+  "updatedAt": "2026-10-16T06:48:58.792Z"
 }

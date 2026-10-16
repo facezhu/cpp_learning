@@ -20,6 +20,16 @@ test('save, restart, revision conflict and invalid path',async t=>{
   await assert.rejects(store.getLesson('../profile'),{status:400});
   assert.equal((await store.getLesson('lesson-14')).notes,saved.notes);
 });
+test('completion-only updates preserve hidden legacy notes, answers, checks and code',async t=>{
+  const {root,store}=await fixture(t);const original=await store.getLesson('lesson-14');
+  const legacy={notes:'旧笔记仍属于学习档案',code:'// 自己保存的解答',checks:[true,false,true],answers:{q1:{text:'已有回答',status:'mastered'},q2:{text:'复习笔记',status:'review'}}};
+  const saved=await store.saveLesson(original.id,{...original,...legacy});
+  await store.saveLesson(saved.id,{...saved,completed:true,historical:false});
+  const reloaded=await new LearningStore(root).getLesson(saved.id);
+  assert.equal(reloaded.completed,true);
+  for(const key of Object.keys(legacy))assert.deepEqual(reloaded[key],legacy[key],key);
+});
+
 test('corrupt JSON is never overwritten; all recovery targets prevalidated',async t=>{
   const {root,store}=await fixture(t);await fs.mkdir(path.join(root,'lessons'));await fs.writeFile(path.join(root,'lessons/lesson-02.json'),'{broken');
   await assert.rejects(store.state(),{status:503});await assert.rejects(store.recover(true),{status:503});

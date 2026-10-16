@@ -1,3 +1,4 @@
+import {historicalTemplates} from './exercise-templates.mjs';
 import { basicLectures } from './lectures-basic.mjs';
 import { advancedLectures } from './lectures-advanced.mjs';
 import { expandQuestions } from './interviews.mjs';
@@ -15,6 +16,7 @@ export const stages = [
 
 function make(n, title, subtitle, data) {
   data={...data,...historicalExamples[n]};
+  if(historicalTemplates[n])data.starterFiles=historicalTemplates[n];
   if(historicalDiagrams[n])data.frames=historicalDiagrams[n];
   const stage = n <= 8 ? 0 : n <= 14 ? 1 : n <= 22 ? 2 : n <= 26 ? 3 : 4;
   const files = data.files ?? [{ name: `lesson${n}.cpp`, content: data.code }];

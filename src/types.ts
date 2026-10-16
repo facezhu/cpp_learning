@@ -1,6 +1,8 @@
 export type LessonRecord = { schemaVersion: number; id: string; revision: number; completed: boolean; historical: boolean; checks: boolean[]; notes: string; code: string; answers: Record<string, { text: string; status: 'review' | 'mastered' }>; updatedAt: string | null };
 export type Session = { schemaVersion: number; id: string; lessonId: string; revision: number; source: 'auto' | 'manual'; durationMs: number; days: Record<string, number>; note: string; createdAt: string; updatedAt: string; deleted: boolean; clientId?:string; startedAt?:number; endedAt?:number|null };
-export type LectureSection={title:string;paragraphs:string[];code?:string;language?:'cpp'|'cmake';points?:string[];table?:{headers:string[];rows:string[][]}};
+export type CodeFile={name:string;content:string;language?:'cpp'|'cmake'};
+export type CodeBinding={paragraph:number;text:string;lines:number[];file?:string;exampleId?:string};
+export type LectureSection={id:string;exampleId:string;title:string;paragraphs:string[];code?:string;codeName?:string;codeFiles?:CodeFile[];bindings:CodeBinding[];language?:'cpp'|'cmake';points?:string[];table?:{headers:string[];rows:string[][]}};
 export type LabState = { token: string; profile: { schemaVersion: number; recoveryDismissed: boolean; restored: boolean }; lessons: Record<string, LessonRecord>; sessions: Session[] };
 export type Lesson = {
   n: number; id: string; title: string; subtitle: string; stage: number; minutes: number; kind: string; scene: string; objectives: string[];

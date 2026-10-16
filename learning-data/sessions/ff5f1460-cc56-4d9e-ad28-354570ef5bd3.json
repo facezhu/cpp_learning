@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "id": "ff5f1460-cc56-4d9e-ad28-354570ef5bd3",
+  "clientId": "9e29bf8d-6c2c-4565-9401-c979f019c868",
+  "lessonId": "lesson-16",
+  "startedAt": 1792135168040,
+  "endedAt": null,
+  "source": "auto",
+  "revision": 6,
+  "durationMs": 49990,
+  "days": {
+    "2026-10-16": 49990
+  },
+  "note": "打开课程至退出页面",
+  "createdAt": "2026-10-16T07:19:28.042Z",
+  "updatedAt": "2026-10-16T07:20:18.032Z",
+  "deleted": false
+}

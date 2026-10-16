@@ -2,7 +2,7 @@
 const section = (title, paragraphs, code, extra = {}) => ({ title, paragraphs, ...(code ? { code, language: 'cpp' } : {}), ...extra });
 const cpp = String.raw;
 
-export const advancedLectures = {
+const draftLectures = {
   15: [
     section('从战斗结束追问：角色不再使用时，资源由谁收拾？', [
       '前一课的 Character 可以通过统一接口执行攻击，但“行为正确”还不足以管理一个游戏。切换关卡时，纹理、声音、文件和角色对象都需要在合适的时刻释放。如果每个离开函数的出口都手写清理，正常路径写了，失败或提前返回的路径却很容易漏掉。',
@@ -142,6 +142,7 @@ void adopt(std::unique_ptr<Character> character); // 接收所有权
     virtual ~Character() = default;
     virtual std::string role() const = 0;
 };
+
 struct Warrior : Character {
     std::string role() const override { return "Warrior"; }
 };`),
@@ -1104,3 +1105,407 @@ if (auto* Score = OtherActor->FindComponentByClass<ULabScoreComponent>()) {
     ])
   ]
 };
+
+// 每个语义标识和教学顺序均为作者指定；与展示位置、搜索词或代码关键词无关。
+const outlines = {
+  15: [['overview','回顾与定义：生命周期和 RAII'],['manual-cleanup','设计对照：手工清理的遗漏'],['destructor','析构函数的定义与语法'],['scope','用局部对象表达资源的使用范围'],['trace','数据追踪：构造与逆序销毁'],['early-return','小实验：提前返回时释放资源'],['noncopyable','所有权约束：禁止复制资源包装'],['member-order','组合对象与成员的销毁顺序'],['limits','异常与进程退出的边界'],['practice','练习与下一课：从资源对象到智能指针']],
+  16: [['overview','回顾与定义：智能指针和所有权'],['raw-pointer','设计对照：裸指针与释放责任'],['create','独占拥有者的类型、创建与访问'],['copy','复制对象与复制拥有者的区别'],['move','移动构造与所有权转移'],['observer','观察指针与完整转移顺序'],['trace','数据追踪：一次创建，一次销毁'],['borrow','函数接口：借用与接收所有权'],['shared','进阶：共享拥有者与弱观察者'],['practice','练习与下一课：把拥有者放进队伍']],
+  17: [['overview','回顾与定义：队伍容器和多态元素'],['interface','准备队伍共用的角色接口'],['team','从内向外阅读容器类型并添加成员'],['range-for','范围遍历：绑定现有拥有者'],['iterator','迭代器、解引用与尾后边界'],['erase','删除循环与返回的有效位置'],['trace','数据追踪：移除 Mage 的每一步'],['invalidation','设计边界：包装移动与角色存活'],['interfaces','接口设计、对象切片与稳定身份'],['practice','练习与下一课：由遍历走向算法']],
+  18: [['overview','回顾与定义：算法、比较器和 lambda'],['range','用半开区间表示算法处理范围'],['comparator','先用普通函数定义排序规则'],['lambda','lambda 的捕获、参数和函数体'],['capture','小实验：按值与按引用捕获'],['remove','筛选阶段：新的逻辑终点'],['erase-remove','删除尾部，再按血量排序'],['mistakes','设计对照：规则方向、相等与身份'],['complexity','进阶：复杂度与比较器约束'],['practice','练习与下一课：验证结果并持久化']],
+  19: [['overview','回顾与定义：序列化与存档格式'],['save-data','先定义要保存的逻辑数据'],['streams','文件流的类型、打开与写入'],['format','字段顺序、版本和带空格的姓名'],['load','读入临时对象，验证后更新'],['version','设计原因：格式版本与兼容处理'],['trace','数据追踪：默认 100 恢复为 75'],['bad-file','错误对照：坏文件测试与状态不变'],['integrity','资源关闭与数据完整性的边界'],['practice','练习与下一课：明确报告失败']],
+  20: [['overview','回顾与定义：失败结果、异常和调试'],['apply','定义伤害函数的正常与失败契约'],['throw','throw、异常对象与正常返回路径'],['catch','try/catch 的语法与处理范围'],['return-value','小实验：返回值与原变量的变化'],['unwind','异常传播时的资源清理'],['assert','设计对照：断言与实际输入验证'],['debug','调试步骤：断点、变量与调用栈'],['boundaries','边界验证与整数计算顺序'],['practice','练习与下一课：验证并组织构建']],
+  21: [['overview','回顾与定义：构建目标与 CMake'],['files','完整小项目：头文件、实现、入口和构建规则'],['target','CMake 的项目声明与可执行目标'],['features','目标语言标准和警告选项'],['commands','配置与构建两个阶段的命令'],['build-dir','设计原因：分离源码与构建目录'],['trace','数据追踪：编译、链接与 65 血量'],['paths','可执行路径和构建配置'],['direct-build','错误定位：直接编译与构建工具'],['practice','练习与下一课：组合成战斗项目']],
+  22: [['overview','回顾与定义：回合制战斗的模块与规则'],['character','共同状态、虚接口和伤害约束'],['mage','职业实现：攻击与魔法消耗'],['borrow','接口设计：战斗只借用角色'],['turns','回合语法与行动顺序'],['trace','数据追踪：三轮后的 40 与 0'],['round-limit','设计原因：无进展时也需要结束'],['winner','胜负判断与平局分支'],['ownership','队伍拥有角色，调度借用角色'],['practice','练习与下一课：从战斗数据走向空间']],
+  23: [['overview','回顾与定义：位置、位移和方向'],['offset','小例子：两个位置相减得到位移'],['vector-type','向量结构、分量和长度函数'],['length','数据追踪：(3,4) 的长度为 5'],['normalize','单位方向与归一化语法'],['zero','零长度分支与阈值策略'],['movement','把方向乘距离，更新当前位置'],['spaces','设计约定：坐标空间与单位'],['numeric','错误对照：整数除法和数值误差'],['practice','练习与下一课：把距离写成速度乘时间']],
+  24: [['overview','回顾与定义：游戏循环和时间间隔'],['loop','输入、更新、渲染的职责'],['units','从速度与时间的单位得到位移'],['simulate','小例子：模拟固定间隔的多帧更新'],['trace','数据追踪：30 帧与 60 帧的一秒'],['large-step','设计边界：大时间步与碰撞'],['fixed-step','进阶：固定步长和累积器'],['integration','输入语义与积分方法的边界'],['time-errors','错误对照：累计时间和帧间隔'],['practice','练习与下一课：给实体组合运动能力']],
+  25: [['overview','回顾与定义：实体、组件与系统'],['components','先定义位置与生命两份组件数据'],['entity','可选组件与实体结构的语法'],['create','小例子：玩家和树的组件组合'],['damage','伤害系统：先判断能力，再修改数据'],['trace','数据追踪：玩家 70，树没有生命组件'],['identity','设计原因：稳定 ID 与容器下标'],['inheritance','组合、继承和 ECS 的适用范围'],['velocity','选做：增加速度组件与更新系统'],['practice','练习与下一课：从能力组合到资源复用']],
+  26: [['overview','回顾与定义：资源缓存、强引用与弱引用'],['index','缓存索引的键和值'],['lock','lock 语法与临时强拥有者'],['lookup','完整查找流程：复用、创建和登记'],['reuse','数据追踪：同一资源只加载一次'],['release','数据追踪：最后拥有者离开后卸载'],['cache-life','设计边界：索引与资源的不同生命周期'],['limits','进阶：过期条目、线程与循环引用'],['ue-boundary','向 UE 过渡：普通对象与 UObject 生命周期'],['practice','练习与下一课：用日志验证后进入引擎']],
+  27: [['overview','回顾与定义：UE 世界、Actor 和生命周期入口'],['toolchain','工具链、模块与 UE 构建阶段'],['actor-type','Actor 类声明和反射语法组成'],['generated','生成头文件的用途与位置规则'],['begin-play','小例子：实现游戏开始时的回调'],['logging','引擎日志、字符字面量与实例名'],['instance','操作追踪：类、关卡实例与 Play'],['object-life','设计边界：UObject 管理与 Actor 结束'],['debug','错误定位：构建阶段与运行条件'],['practice','练习与下一课：让 Actor 持续更新']],
+  28: [['overview','回顾与定义：Actor 更新与默认组件'],['constructor','设置默认结构与启用 Tick'],['components','默认子对象和根组件的用途'],['properties','引擎对象引用与可配置属性'],['tick','Tick 的签名、父类调用与世界位移'],['trace','数据追踪：一帧 1 厘米，两秒约 100 厘米'],['assets','编辑器操作：网格资产与蓝图默认值'],['local-world','设计对照：世界方向与物体前方'],['limits','Actor 结束与移动碰撞的边界'],['practice','练习与下一课：把运行数据提供给蓝图']],
+  29: [['overview','回顾与定义：反射、属性和逻辑组件'],['component-type','可添加到蓝图的生命组件类型'],['properties','属性修饰项与运行状态'],['begin-play','初始化实际配置并订阅伤害'],['delegate','委托、接收函数与动态绑定语法'],['damage','处理伤害：验证、限制与日志'],['flow','调用追踪：伤害事件到生命值'],['blueprint','编辑器操作：配置与触发伤害'],['boundaries','设计边界：访问控制与对象引用'],['practice','练习与下一课：连接输入和角色移动']],
+  30: [['overview','回顾与定义：Controller、Pawn 和 Character'],['actions','输入动作、映射上下文和轴修饰'],['dependencies','模块依赖与输入资产属性'],['camera','相机臂、相机与组件层级'],['context','本地玩家、类型检查与映射注册'],['binding','绑定动作事件到成员函数'],['move','数据追踪：动作轴到世界移动输入'],['possession','编辑器操作：占有角色与指定资产'],['debug','设计边界与分层排查'],['practice','练习与下一课：移动后感知碰撞']],
+  31: [['overview','回顾与定义：碰撞感知、事件与伤害'],['responses','Overlap、Block 与碰撞条件'],['trigger','球形触发组件和碰撞配置'],['delegate','重叠委托的签名与动态绑定'],['filter','目标过滤与对象有效性'],['damage','发送通用伤害并交给生命组件'],['consume','一次性触发与结束 Actor'],['trace','调用追踪：100 生命变为 75'],['collision-setup','编辑器操作：验证双方碰撞条件'],['practice','练习与下一课：组合收集和生存场景']],
+  32: [['overview','回顾与定义：综合场景的最小闭环'],['roles','角色、生命、分数和物品各自负责什么'],['score-type','分数组件的状态、配置和调用接口'],['score','加分与一次性完成判定'],['pickup-components','检测范围和可见网格的组件结构'],['collect','查询分数组件并消费收集物'],['consume','设计原因：关闭碰撞、通知和销毁的顺序'],['trace','数据追踪：三次收集与一次完成'],['scene','编辑器操作：按依赖顺序搭建关卡'],['extensions','选做：完成、失败与重新开始'],['practice','复习与后续：保存资产并重复验收']]
+};
+
+const introductions = {
+  15: ['上一课用 Character 的虚接口统一 Warrior 和 Mage 的攻击。本课补上资源使用结束后的收尾过程。', '**对象生命周期**是对象从完成初始化到销毁的存活期间；**作用域**是名字可以使用的范围，两者不是同一个概念。**RAII**把资源的获取和释放绑定到管理对象的生命周期，用于自动清理文件、纹理或其他资源。', '语法先分三部分：构造函数建立有效状态，析构函数用 ~类名() 表示结束时的清理，局部作用域决定普通局部对象何时结束。先阅读下面的 Resource 小类，再观察两个对象的日志；真实资源 API 会在后面的设计对照里讨论。'],
+  16: ['上一课通过构造和析构绑定资源的获取与释放。本课用标准库类型管理动态创建的角色。', '**智能指针**是保存对象地址并执行特定生命周期规则的类。**所有权**表示谁负责最终销毁对象。std::unique_ptr<T> 表达独占所有权：同一时刻只有一个这样的拥有者，拥有者销毁时释放其对象。', '本课依次认识类型 unique_ptr<Character>、创建函数 make_unique、访问运算符 ->、所有权转移 std::move，以及不拥有对象的观察指针。它们各有不同职责，先从创建一个 Arthur 的最小例子开始。'],
+  17: ['上一课创建并转移了一个角色的 unique_ptr。本课把多个拥有者组织成一支队伍。', '**容器**保存一组元素；std::vector<T> 是元素类型为 T 的动态数组。这里的元素类型是 unique_ptr<Character>，所以 vector 拥有指针包装，各包装拥有具体角色，角色行为由 Character 的虚接口提供。', '先准备角色接口，再把嵌套类型从内到外拆开，添加 Warrior 和 Mage，最后学习遍历、位置边界和删除。迭代器表示容器里的位置，不是永久角色 ID。'],
+  18: ['上一课用循环遍历和删除队伍成员。本课用标准算法表达排序和筛选规则。', '**算法**接收一段元素范围并执行通用操作；**比较器**回答谁应该排在前面；**谓词**回答某个元素是否满足条件。**lambda**是可以在使用处定义的匿名可调用对象，可充当比较器或谓词。', '本课以生命值 {30,0,80,10,0} 为数据，先解释范围和普通函数，再拆解 lambda 的 [捕获](参数){函数体}，最后筛去非正生命值并降序排列。期望保留 80、30、10，共 3 项。'],
+  19: ['上一课对内存中的生命值完成筛选和排序。本课把有意义的数据保存到文件，并在之后读取。', '**持久化**让数据在进程结束后仍保留；**序列化**把逻辑字段转换成约定格式；**反序列化**解析格式并重建数据。存档应保存姓名和血量，不保存一次运行里的对象地址。', '本课格式为版本号、带引号的姓名、生命值。先定义 Save 数据，再解释字段边界和文件流，随后读入临时对象，验证通过后才更新当前角色。成功、失败和原状态是否改变都必须可判断。'],
+  20: ['上一课用返回 bool 明确表达存档加载是否成功。本课进一步区分失败接口、异常传播和调试工具。', '**异常**是让错误从当前函数转交给处理层的一种机制：throw 发出异常，try 指定处理范围，catch 接收匹配的异常。它不会自动把失败变成正常返回值，也不会替你回滚所有变量。', '本课伤害契约是：非负伤害正常返回剩余血量，超量伤害返回 0，负伤害抛 std::invalid_argument。先拆开 throw 的含义，再写函数与处理器；最后使用断点验证两条执行路径。'],
+  21: ['前面已经拆分过头文件和实现文件，并会用编译器运行练习。本课把项目的构建规则保存成可以重复使用的文本。', '**构建目标**是要生成的程序或库；**CMake**读取目标与依赖配置，生成本机的构建规则；实际编译仍由 g++、Clang 或 MSVC 完成。配置阶段和构建阶段不同，不能把 CMake 当编译器。', '语法先看 project 命名项目、add_executable 列出目标源文件、target_compile_features 指定语言要求。随后看头文件、实现与 main 如何组合成 battle，再执行配置和构建命令。'],
+  22: ['上一课把多个源文件组织成可重复构建的目标。本课把继承、多态、智能指针和容器组合成一个回合制战斗。', '**回合调度**决定行动顺序；**职业实现**决定具体攻击；**角色接口**统一生命规则；**拥有者**负责创建和销毁。battle 只借用角色，不决定它们的分配方式。', '本课规则固定：Warrior 120 生命、每击 35；Mage 80 生命、100 魔法，每击花 20 造成 40。死亡者不行动，先手击杀后后手不反击，最多 100 轮。先读共同接口，再跟踪三轮的具体数值。'],
+  23: ['上一课战斗中的名字、血量和魔法都是数值状态。本课增加描述地图位置和移动方向的数学数据。', '**位置**表示相对原点的点；**位移向量**表示从起点到终点的变化；**长度**表示变化的大小；**单位方向**是长度为 1 的方向向量。位置相减得到位移，位置加位移得到新位置。', '先用 struct Vec2 把两个 double 分量 x、y 放在一起，定义只读 length()，再计算 (3,4) 的长度、归一化和零长度分支。所有例子使用普通二维直角坐标，先不绑定引擎坐标约定。'],
+  24: ['上一课把方向与移动距离分开。本课继续把距离写成速度乘经过时间。', '**游戏循环**持续采集输入、更新状态并渲染；**DeltaTime**是本次更新对应的时间间隔，通常以秒为单位；**速度**是每秒移动的距离。速度乘间隔得到本次位移。', '核心语句 position += speed * deltaTime 中，+= 把本次位移加到旧位置，speed 的单位为距离/秒，deltaTime 的单位为秒。本课先用固定参数模拟一秒，不创建真实游戏窗口，再讨论帧率与大步长的边界。'],
+  25: ['上一课按时间更新位置。本课把位置、生命等数据组织为可以自由组合的能力。', '**实体**表示一个对象的身份；**组件**保存某种能力的数据；**系统**按照组件数据执行规则。例如玩家有 Transform 和 Health，装饰树只有 Transform，伤害系统只处理有 Health 的对象。', '本课用 struct 表达小数据，用 std::optional<Health> 表达组件有或没有，用 Entity 组合 ID、位置与可选生命。它是理解组件设计的最小模型，不是完整高性能 ECS 框架。'],
+  26: ['上一课用组合表达对象具备哪些能力。本课集中管理多个对象共同使用的资源。', '**资源缓存**按路径等标识查找已加载对象；shared_ptr 是共同延长资源生命周期的强拥有者；weak_ptr 是不延长资源生命周期的弱观察者。lock() 尝试从弱引用取得临时强拥有者，失败时得到空指针。', '本课缓存用 unordered_map<路径,weak_ptr<Texture>> 保存索引，get 返回 shared_ptr 给调用者。先阅读索引类型与 lock，再跟踪首次加载、再次复用、最后释放和重新加载。Texture 只有日志，不进行真实图像解码。'],
+  27: ['上一课管理普通 C++ 资源。本课进入 UE，先接通一个最小的引擎运行入口。', '**World**组织运行中的场景；**Actor**是可放进世界的对象；**生命周期回调**是在引擎规定时机执行的虚函数。UE 已提供入口与主循环，你实现 BeginPlay，让一个 Actor 在开始游戏时写日志。', '先认识工具链，再解释 UCLASS、GENERATED_BODY、生成头文件和 AActor 类声明，最后实现并运行回调。目标固定 UE 5.6、EngineLab 模块；以下为学习源码，当前环境没有实际 UE 构建或 Play 验证。Windows 使用对应 MSVC/SDK，macOS 工程需配置匹配的 Xcode/Clang，MinGW 控制台任务不能代替 UE 构建。'],
+  28: ['上一课让 Actor 在 BeginPlay 写出一次日志。本课让 Actor 在运行期间持续更新位置。', '**Tick**是引擎按更新频率调用的虚函数，参数 DeltaTime 表示本次间隔；**默认组件**是类构造时建立的固定组成；**根场景组件**承载 Actor 的空间变换。MovingMarker 由网格组件显示形状，由 Tick 沿世界 X 移动。', '先定义默认子对象、根组件和受反射追踪的成员，再写构造函数与 Tick。Speed 默认 50 厘米/秒，因此世界位移为 FVector(Speed*DeltaTime,0,0)。本课不处理玩家输入，也不保证移动遇墙停止。'],
+  29: ['上一课用 Actor 的组件和 Tick 更新位置。本课让编辑器与蓝图认识自定义数据，并把伤害事件接到生命值。', '**反射**提供运行时与编辑器可查询的类型、属性和函数信息；**逻辑组件**保存可复用能力但不自带空间变换；**委托**允许事件通知已绑定的接收函数。LabHealthComponent 用这三者维护血量。', '先解释 UCLASS 的组件声明、UPROPERTY 的可编辑性和蓝图访问项，再解释 UFUNCTION 接收函数与 AddDynamic 绑定，最后跟踪 120 生命受到 25 伤害变为 95。编辑器元数据不能替代运行时验证。'],
+  30: ['上一课让逻辑组件响应伤害。本课把键盘输入连接到一个可控制的移动角色。', '**PlayerController**负责控制；**Pawn**是可被控制的世界对象；**Character**是具有胶囊与 CharacterMovement 等常用能力的 Pawn。**Input Action**表达移动意图，**Mapping Context**把具体按键映射到意图。', '本课 AExplorerCharacter 继承 ACharacter。先定义二维动作和轴映射，再注册本地玩家的上下文，绑定 Move 函数，最后把二维值交给 AddMovementInput。相机固定俯视，移动沿世界轴，不含鼠标转向。'],
+  31: ['上一课玩家能在关卡中移动。本课让进入陷阱区域的动作触发一次伤害。', '**碰撞响应**定义对象相遇时阻挡或重叠；**Overlap 事件**通知进入相交区域；**通用伤害流程**把伤害请求交给目标处理。陷阱感知相遇并发送伤害，生命组件才真正修改 Health。', '先区分 Overlap 与 Block，再定义球形触发组件和委托参数，随后过滤目标、调用 ApplyDamage、关闭碰撞并结束陷阱。默认 100 生命受到 25 伤害变为 75；本课仅本地一次性原型，不含联网命中系统。'],
+  32: ['上一课已经连通移动、陷阱和生命变化。本课增加收集与计分，把功能串成可重复完成的场景。', '**最小可玩闭环**是一条有开始、操作与结果的完整路径。本课路径是 Play 后移动、受伤、收集三个物品，最后出现 Level complete! 日志。角色负责移动，组件维护生命和分数，物品只通知合格对象。', '先定义 Score、Goal 与 AddPoint，再定义 Pickup 的检测与显示组件，最后按三次收集跟踪状态并搭建关卡。当前完成判定只写日志；血量归零不会自动停止移动，失败界面、重开、存档与联网属于后续扩展。']
+};
+
+const orders = {
+  15: ['overview','destructor','scope','trace','early-return','noncopyable','manual-cleanup','member-order','limits','practice'],
+  16: ['overview','create','move','observer','trace','copy','borrow','raw-pointer','shared','practice'],
+  19: ['overview','save-data','format','streams','load','trace','version','bad-file','integrity','practice'],
+  20: ['overview','throw','apply','catch','return-value','unwind','assert','debug','boundaries','practice'],
+  21: ['overview','target','features','files','commands','trace','build-dir','paths','direct-build','practice'],
+  23: ['overview','vector-type','offset','length','normalize','zero','movement','spaces','numeric','practice'],
+  28: ['overview','components','properties','constructor','tick','trace','assets','local-world','limits','practice'],
+  29: ['overview','component-type','properties','delegate','begin-play','damage','flow','blueprint','boundaries','practice']
+};
+
+// 绑定文字是正文中的完整句子，行号由作者对照当前例子逐行指定。
+const links = {
+  15: {
+    'manual-cleanup': [['提前 return 会跳过函数末尾的 releaseTexture，手工清理因此需要照顾每个出口。',[2,3,4]]],
+    destructor: [['~Resource() 是析构函数的声明，函数体在这里输出 Release 日志。',[7,8,9]]],
+    scope: [['第 2 行先构造 Texture，第 3 行再构造 Sound，离开这个作用域时按相反顺序销毁。',[2,3,5]]],
+    'early-return': [['执行第 3 行的 return 时 texture 已成功构造，所以仍会析构；sound 尚未构造。',[2,3,4]]],
+    noncopyable: [['两项 = delete 分别禁止复制构造和复制赋值，避免两个包装误认同一份资源归自己释放。',[1,2]]]
+  },
+  16: {
+    'raw-pointer': [['new 创建角色，但 player 这个裸指针变量离开作用域不会自动执行 delete。',[1,2,3]]],
+    create: [['make_unique<Character> 创建角色并建立唯一拥有者，first->name 访问被拥有的对象。',[2,3]]],
+    copy: [['复制 first 的拥有者被禁止；另一次 make_unique 创建的是独立的新角色。',[2,3]]],
+    move: [['std::move 允许移动构造把拥有权交给 second，完成后 first 为空而角色仍存活。',[1,2,3]]],
+    observer: [['observer 只借用角色地址；随后拥有者转为 second，并不复制或搬动 Character 对象。',[2,3,4]]],
+    borrow: [['Character 的 const 引用只借用对象，unique_ptr 按值参数则要求调用者交出拥有权。',[1,2]]]
+  },
+  17: {
+    interface: [['role() 是返回职业文本的只读虚接口，Warrior 的 override 提供具体返回值。',[3,5,6]]],
+    team: [['team 的元素是 unique_ptr<Character>，两次 push_back 分别加入 Warrior 和 Mage 的拥有者。',[1,2,3]]],
+    'range-for': [['const auto& 绑定现有 unique_ptr，member->role() 再调用实际角色的虚函数。',[1,2]]],
+    iterator: [['it 只有在不等于 end() 时才可解引用，(*it)->role() 分别经过位置和角色两层访问。',[1,2,3]]],
+    erase: [['删除分支接住 erase 返回的位置，不删除的分支才执行 ++it。',[2,3,4,5]]],
+    invalidation: [['observer 指向单独分配的角色，不是 vector 内的 unique_ptr 包装；拥有者删除后它仍会失效。',[1,2,3]]]
+  },
+  18: {
+    range: [['sort 处理 begin() 到 end() 之前的半开区间，默认把生命值按升序排列。',[1,2]]],
+    comparator: [['higherFirst 用 a > b 回答 a 应否排在 b 前面，sort 把这个函数作为比较规则。',[1,2,4]]],
+    lambda: [['[](int a, int b) { return a > b; } 由空捕获列表、两个参数和比较函数体组成。',[2]]],
+    capture: [['[limit] 按值保存阈值，hp <= limit 返回 true 表示该生命值满足死亡条件。',[1,2]]],
+    remove: [['remove_if 返回新的逻辑终点 newEnd，谓词为 true 的项不再属于保留区间，但 size 尚未改变。',[1,2,3,4,5]]],
+    'erase-remove': [['erase 删除 newEnd 之后的尾部，sort 再降序排列，最终输出三个存活值。',[1,2,3,4,5]]]
+  },
+  19: {
+    'save-data': [['Save 只把姓名与生命值定义为逻辑字段，默认 health 为 100，不把进程地址当作存档。',[1,2,3]]],
+    streams: [['ofstream 打开 save.txt，quoted 保留含空格的姓名边界，flush 后再检查流状态。',[1,2,3,4]]],
+    load: [['先把字段读入 temporary，检查版本和范围，最后 current = temporary 才更新正式状态。',[2,3,4,5,6,7]]],
+    trace: [['restored 起初使用默认值 100，loadSave 成功后才输出 Sir Arthur 的 75 生命值。',[1,2,3,4]]],
+    'bad-file': [['坏文件用例只调用 loadSave，失败后 current 应保留 Keep Me 和 60，而不是部分更新。',[1,2,3,4]]]
+  },
+  20: {
+    apply: [['负伤害执行 throw，合法伤害则由 return 返回新生命值，超量伤害返回 0。',[2,3]]],
+    catch: [['try 中的负伤害调用跳转到 catch，error.what() 提供异常说明而不是一个正常伤害结果。',[1,2,3,4]]],
+    'return-value': [['按值参数不会改写原 health；只有把返回值赋回变量，health 才从 100 变为 70。',[1,2,3]]],
+    unwind: [['异常离开 try 作用域时清理已构造的 texture，再进入 catch。',[2,3,5,6]]],
+    assert: [['if 的验证在运行时实际执行，注释中的 assert 不能替代对外部输入的检查。',[1,2,3,4]]]
+  },
+  21: {
+    files: [
+      ['头文件只声明 applyDamage，参数和返回类型组成调用者使用的接口。',[1,2],'Damage.h'],
+      ['实现文件包含同一个头文件，再给出 applyDamage 的唯一函数定义。',[1,2,3,4],'Damage.cpp'],
+      ['main 调用 applyDamage(100, 35)，正常结果为 65。',[3],'main.cpp'],
+      ['battle 目标同时列出 main.cpp 和 Damage.cpp，才会把调用与实现一起编译链接。',[3],'CMakeLists.txt']
+    ],
+    target: [['add_executable 的第一个参数是目标名 battle，后面的两个参数是要参与构建的源文件。',[3]]],
+    features: [['PRIVATE cxx_std_17 要求当前 battle 目标使用 C++17；后面的分支按编译器选择警告参数。',[1,2,3,4,5,6]]],
+    commands: [['-S 选择源码目录、-B 选择 build 目录，--build 才执行已配置的构建。',[2,3,5,6]]],
+    trace: [['applyDamage 的实现对正伤害计算 100 - 35，再把结果限制到不低于 0。',[3,4]]]
+  },
+  22: {
+    character: [['takeDamage 把有效伤害集中到共同接口，纯虚 attack 交给职业实现，虚析构支持基类销毁。',[2,3,4,6,7]]],
+    mage: [['法师活着且魔法至少 20 时先扣 20 魔法，再让目标承受 40 伤害。',[2,3,4]]],
+    turns: [['先手攻击之后重新判断 second.isAlive()，只有仍活着的后手才能反击。',[2,3,4]]],
+    winner: [['只有一方存活且另一方死亡才判胜，其余情况进入平局分支。',[1,3,5,6]]],
+    ownership: [['队伍的 unique_ptr 拥有角色，*team[0] 和 *team[1] 把角色引用借给 battle。',[1,2,3,4]]]
+  },
+  23: {
+    offset: [['目标减当前位置得到 (5-2, 5-1)，所以 offset 是 (3,4)。',[1,2,3]]],
+    'vector-type': [['length() 的 const 表示不修改向量，sqrt(x*x+y*y) 计算两个分量构成的长度。',[2,3,4]]],
+    length: [['offset 的两个分量为 3 和 4，length() 返回 sqrt(25)，也就是 5。',[1,2]]],
+    normalize: [['长度大于阈值才逐分量除以 len，否则返回零向量，避免除零。',[2,3]]],
+    movement: [['单位方向乘距离 2 得到位移，再分别加到当前位置的 x 和 y。',[1,2,3,4]]]
+  },
+  24: {
+    loop: [['简化循环先读取输入，再以本次 deltaTime 更新，最后渲染状态。',[2,3,4]]],
+    units: [['speed 的每秒单位乘 deltaTime 的秒，得到本次要加到 position 的距离。',[1,2,3]]],
+    simulate: [['simulate 重复 frames 次相同更新，每次把 speed * dt 加到位置，最后返回累计距离。',[1,4,5,6]]],
+    trace: [['1.0 / 30 与 1.0 / 60 保证浮点除法，两次调用都模拟一秒，位置都约为 6。',[1,2]]],
+    'fixed-step': [['累积时间够一个 fixedDt 就执行一次固定更新，并从 accumulator 中减去这一小步。',[1,2,3,4]]]
+  },
+  25: {
+    components: [['Transform 保存位置数据，Health 保存生命数据，二者可以按能力组合而不互相继承。',[1,2]]],
+    entity: [['Entity 组合稳定身份、位置与 optional<Health>，最后一项可以有值或没有值。',[2,3,4]]],
+    create: [['player 的 Health{100} 表示有生命组件，tree 的 nullopt 表示没有该组件而不是零血。',[1,2]]],
+    damage: [['短路条件先确认 health 存在且伤害为正，之后才解引用并更新生命。',[2,3]]],
+    trace: [['相同 damage 调用把玩家改为 70，却跳过没有生命组件的树，has_value() 因而输出 0。',[1,2,3,4]]],
+    velocity: [['Velocity 只保存速度，选做更新应使用 transform.x += velocity.x * deltaTime。',[2,3]]]
+  },
+  26: {
+    index: [['unordered_map 用路径字符串作键、weak_ptr<Texture> 作值，缓存本身不成为强拥有者。',[1]]],
+    lock: [['lock() 成功得到 existing 这个 shared_ptr，返回它即可在调用者使用期间保持纹理存活。',[1,2]]],
+    lookup: [['锁定失败时 make_shared 创建纹理，索引登记弱引用，返回强引用给使用者。',[2,3,4,5]]],
+    reuse: [['a 尚未释放时第二次 get 同路径会复用同一对象，所以 a == b 输出 1。',[1,2,3]]],
+    release: [['a 和 b 都 reset 后最后强引用消失，再次 get 会创建另一份纹理。',[1,2,3]]]
+  },
+  27: {
+    'actor-type': [
+      ['UCLASS 和 GENERATED_BODY 接入引擎反射，ALabProbe 则以普通 C++ 公开继承 AActor。',[6,7,8]],
+      ['BeginPlay 的 override 要求签名与基类虚接口匹配，真正函数体在实现文件中提供。',[9,10]]
+    ],
+    'begin-play': [['Super::BeginPlay() 先执行父类流程，再输出本 Actor 的 EngineLab ready。',[2,3,4]]],
+    logging: [['UE_LOG 使用日志类别、级别和 TEXT 字符字面量；%s 的例子额外打印本实例 GetName()。',[1,3]]],
+    'object-life': [['注释分别列出由世界 SpawnActor、请求 Destroy 和不可使用的手工 delete，表达三种不同责任。',[2,3,4]]]
+  },
+  28: {
+    constructor: [['构造函数启用 Tick，创建默认网格组件并把它设置为根组件。',[2,3,4]]],
+    properties: [['VisibleAnywhere 暴露 Mesh 供查看，EditAnywhere 允许配置 Speed，二者不等于自动指定网格资产。',[1,2,4,5]]],
+    tick: [['每次 Tick 先调用父类，再用 Speed * DeltaTime 生成世界 X 方向的本次位移。',[1,2,3]]],
+    trace: [['50 厘米每秒乘 0.02 秒得到这一帧 1 厘米的位移。',[2,3,4]]],
+    'local-world': [['选做用 GetActorForwardVector() 获取自身朝前的世界方向，再乘速度和时间生成位移。',[2,3]]]
+  },
+  29: {
+    'component-type': [['BlueprintSpawnableComponent 允许蓝图添加本组件，继承 UActorComponent 提供无空间变换的逻辑能力。',[1,2,3]]],
+    properties: [['MaxHealth 可编辑且蓝图可写，Health 作为运行状态只读暴露；元数据不是运行时校验。',[1,2,3,4]]],
+    'begin-play': [['BeginPlay 先验证上限、令 Health 等于实际 MaxHealth，再把接收函数绑定到拥有者的伤害委托。',[3,4,5]]],
+    delegate: [['UFUNCTION 为接收函数提供反射信息，参数列表必须与伤害委托的完整签名对应。',[1,2,3,4]]],
+    damage: [['非正伤害或已零血直接返回；合法伤害经 Clamp 限制后写入 Health。',[1,2]]]
+  },
+  30: {
+    dependencies: [['两个 EditDefaultsOnly 属性分别引用输入映射上下文和动作资产，需要在蓝图默认值中赋值。',[1,2,3,4]]],
+    camera: [['CameraBoom 挂到根组件，Camera 再挂到相机臂，长度与俯角决定固定观察结构。',[1,2,3,4,5,6]]],
+    context: [['逐层取得玩家控制器、本地玩家和输入子系统后，才添加非空 MappingContext。',[1,2,3,4]]],
+    binding: [['BindAction 绑定 Triggered 事件到当前实例的 Move 成员函数，并非此时立刻调用 Move。',[3,4,5,6]]],
+    move: [['Axis.Y 提供世界前方强度，Axis.X 提供世界右方强度；AddMovementInput 的强度不再乘 DeltaTime。',[2,3,4]]]
+  },
+  31: {
+    trigger: [['半径 100 定义球形范围，碰撞预设和 GenerateOverlapEvents 分别设置响应与事件生成。',[1,2,3,4,5]]],
+    delegate: [['UFUNCTION 声明完整重叠签名，BeginPlay 中的 AddDynamic 把当前实例与 OnOverlap 绑定。',[1,2,3,4,7]]],
+    filter: [['无效对象、自身或非 Pawn 会立即返回，不进入后续伤害流程。',[1,2]]],
+    damage: [['ApplyDamage 接收目标、非负伤害、发起控制器和来源 Actor，实际 Health 更新仍由目标处理。',[1,2,3]]],
+    consume: [['关闭碰撞后请求 Destroy，不能把它替换成标准 C++ 的 delete this。',[1,2,3]]]
+  },
+  32: {
+    'score-type': [
+      ['Score 初始为 0 且蓝图只读，Goal 初始为 3 并可在编辑器配置。',[1,2,3,4]],
+      ['BlueprintCallable 把统一的 AddPoint 入口提供给蓝图，调用者不必直接改 Score。',[5,6]]
+    ],
+    score: [['达到 Goal 后立即返回，否则只加一次分，并在刚达到目标时输出完成。',[2,3,4,5]]],
+    'pickup-components': [['Trigger 承担检测，Mesh 只负责显示并关闭自己的碰撞，避免重复检测来源。',[1,2,3,4,5,6,7]]],
+    collect: [['只有找到 LabScoreComponent 才关闭碰撞、通知加分并销毁当前物品。',[2,3,4,5]]]
+  }
+};
+
+const preferredExamples = {15:'destructor',16:'create',17:'team',18:'lambda',19:'load',20:'apply',21:'files',22:'turns',23:'vector-type',24:'simulate',25:'entity',26:'lookup',27:'actor-type',28:'tick',29:'damage',30:'move',31:'damage',32:'collect'};
+const references = {
+  15: {trace:'scope','member-order':'destructor',limits:'early-return',practice:'scope'},
+  16: {trace:'observer',shared:'create',practice:'move'},
+  17: {trace:'erase',interfaces:'team',practice:'erase'},
+  18: {mistakes:'erase-remove',complexity:'comparator',practice:'erase-remove'},
+  19: {format:'streams',version:'load',integrity:'streams',practice:'bad-file'},
+  20: {throw:'apply',debug:'catch',boundaries:'apply',practice:'catch'},
+  21: {'build-dir':'commands',paths:'commands','direct-build':'files',practice:'files'},
+  22: {borrow:'ownership',trace:'turns','round-limit':'turns',practice:'ownership'},
+  23: {zero:'normalize',spaces:'movement',numeric:'normalize',practice:'normalize'},
+  24: {'large-step':'simulate',integration:'units','time-errors':'trace',practice:'trace'},
+  25: {identity:'create',inheritance:'entity',practice:'damage'},
+  26: {'cache-life':'release',limits:'lookup','ue-boundary':'index',practice:'reuse'},
+  27: {toolchain:'actor-type',generated:'actor-type',instance:'begin-play',debug:'begin-play',practice:'begin-play'},
+  28: {components:'constructor',assets:'properties',limits:'tick',practice:'tick'},
+  29: {flow:'begin-play',blueprint:'damage',boundaries:'properties',practice:'damage'},
+  30: {actions:'move',possession:'dependencies',debug:'binding',practice:'move'},
+  31: {responses:'trigger',trace:'damage','collision-setup':'trigger',practice:'delegate'},
+  32: {roles:'collect',consume:'collect',trace:'score',scene:'pickup-components',extensions:'score',practice:'collect'}
+};
+
+const replacements = {
+  15: {
+    destructor: {
+      paragraphs: [
+        '构造函数与类同名，用来建立对象初始状态；析构函数在类名前加 ~，没有返回类型、没有普通参数。~Resource() 在这里声明析构函数；已经成功构造的普通局部对象正常离开作用域时，会自动执行它。',
+        '构造参数 const std::string& n 只读借用名字，: name(n) 在函数体之前初始化成员。explicit 用来禁止把单个字符串参数不经意地隐式转换成 Resource。下面构造打印 Acquire，析构打印 Release，使生命周期可观察；日志模型没有真的加载图片，真实封装还要在这两个位置调用对应资源 API。'
+      ]
+    }
+  },
+  16: {
+    observer: {
+      paragraphs: [
+        '观察指针是只访问对象、不承担释放责任的普通指针。get() 从 unique_ptr 取得角色地址，不复制角色，不转移拥有权，也不延长生命周期。下面重新列出一个独立小例子的完整顺序：先创建 first，再观察，最后转移给 second，不要接在上一段已经移动后的 first 上重复执行。',
+        '转移前后的 Character 地址相同，所以 observer 仍可访问这个活着的 Arthur；但是 second.reset() 或 second 析构后，observer 不会自动变空，已经不能解引用。不要对 observer 执行 delete，也不要再用它构造第二个 unique_ptr。'
+      ],
+      code: cpp`auto first = std::make_unique<Character>("Arthur");
+Character* observer = first.get();
+std::cout << "Observe: " << observer->name << "\n";
+auto second = std::move(first);
+// observer 此时仍指向存活的 Arthur
+// second.reset(); 之后 observer 就不能再解引用`
+    }
+  },
+  17: {
+    interface: {
+      paragraphs: [
+        '先约定队伍元素共享的 Character 接口：virtual std::string role() const=0 声明只读职业查询，=0 表明基类不提供具体职业；virtual 析构支持通过基类接口销毁真实角色。Warrior 继承此接口，用 override 返回自己的职业文本。Mage 用相同签名返回 Mage，完整代码放在参考文件中。',
+        '这些语法来自第 14 课，本课只增加容器中的拥有关系。先保持角色接口很小，接着阅读 vector<unique_ptr<Character>>，再观察它如何保存不同实际类型；对象切片的设计对照放到遍历和删除实验之后。'
+      ]
+    },
+    interfaces: {
+      paragraphs: [
+        '回头比较按值存储：vector<Character> 的每个元素必须是 Character 本身，含纯虚函数的 Character 不能实例化；对可实例化的基类，按值复制派生对象也只保留基类部分，称为对象切片。vector<unique_ptr<Character>> 保存拥有者，派生对象仍完整存在，因此能保留多态。',
+        '打印队伍接收 const vector<unique_ptr<Character>>&，只读借用容器；操作单个成员接收 Character&，不转移拥有权。角色还需要独立稳定身份：删除前面的成员会改变下标，不能把当前位置当作任务系统永久角色 ID。第 25 课会继续区分身份与存放位置。'
+      ]
+    }
+  },
+  19: {
+    streams: {
+      paragraphs: [
+        'std::ofstream 是 <fstream> 中的输出文件流类型，std::ifstream 是输入文件流类型；构造时尝试打开文件，离开作用域自动关闭。路径 "save.txt" 相对于程序当前工作目录，默认 ofstream 打开同名文件会截断原内容。上一小节已约定版本、quoted 姓名和生命值的字段顺序，现在按这个顺序写出。',
+        'flush() 把流缓冲送向底层，static_cast<bool>(out) 再把流状态显式转换成 bool；static_cast<目标类型>(表达式) 是这里的转换语法。打开或写入失败会让检查结果为 false。它检查的是流层状态，不是断电后必然完整的保证；不能仅凭文件存在就报告成功。'
+      ]
+    }
+  },
+  20: {
+    apply: {
+      paragraphs: [
+        'applyDamage 接收两个按值 int 参数并返回新生命值。本例的前提是 health 非负；damage<0 不属于合法调用，使用刚定义的 throw 报告参数错误；damage>=health 直接返回 0，其余情况返回差值。函数不会直接改变调用者变量。',
+        'std::invalid_argument 是 <stdexcept> 中表示无效参数的异常类，圆括号内字符串给出错误说明。if、throw 和 return 对应清楚的两条路径：非法调用没有正常 int 返回，合法调用产生一个新值。把失败偷偷编码成 0 的问题，在下面错误接口对照中再总结。'
+      ]
+    },
+    catch: {
+      code: cpp`try {
+    applyDamage(100, -1);
+} catch (const std::exception& error) {
+    std::cout << "Error: " << error.what() << "\n";
+}`
+    }
+  },
+  21: {
+    files: {
+      paragraphs: [
+        '下面是一组互相配合的完整文件。Damage.h 声明接口；Damage.cpp 包含这个头文件并提供函数定义；main.cpp 使用接口；CMakeLists.txt 把两个 .cpp 列到同一个 battle 目标。先分别看文件名，区分“供编译器读取的 C++”与“供 CMake 读取的构建规则”。',
+        '头文件中的声明足以让 main 编译调用，却不会自动把实现参加链接，所以不能漏掉 Damage.cpp。#pragma once 只防止头文件在一个翻译单元重复包含。练习目录和 reference 是两套可独立构建的代码，不要把两份实现同时加入目标。'
+      ],
+      codeFiles: [
+        {name:'CMakeLists.txt',language:'cmake',content:'cmake_minimum_required(VERSION 3.20)\nproject(EngineLab LANGUAGES CXX)\nadd_executable(battle main.cpp Damage.cpp)\ntarget_compile_features(battle PRIVATE cxx_std_17)\nif(MSVC)\n  target_compile_options(battle PRIVATE /W4)\nelse()\n  target_compile_options(battle PRIVATE -Wall -Wextra -pedantic)\nendif()'},
+        {name:'Damage.h',language:'cpp',content:'#pragma once\nint applyDamage(int health, int damage);'},
+        {name:'Damage.cpp',language:'cpp',content:cpp`#include "Damage.h"
+#include <algorithm>
+int applyDamage(int health, int damage) {
+    return damage > 0 ? std::max(0, health - damage) : health;
+}`},
+        {name:'main.cpp',language:'cpp',content:cpp`#include "Damage.h"
+#include <iostream>
+int main() { std::cout << "Health: " << applyDamage(100, 35) << "\n"; }`}
+      ]
+    }
+  },
+  23: {
+    'vector-type': {
+      paragraphs: [
+        'struct Vec2 把 x、y 两个 double 分量组成一个小值类型，成员默认公开；x=0,y=0 提供默认值。length() const 声明一个不修改当前向量的成员函数，返回 double 长度。这里不需要继承、动态分配或智能指针。',
+        'std::sqrt 是 <cmath> 中的平方根函数，sqrt(x*x+y*y) 按直角坐标长度公式计算；C++ 的平方写 x*x，^ 是按位异或而不是乘方。先看结构与公式，接下来用 (3,4) 逐项代入得到 5。'
+      ]
+    },
+    normalize: {
+      paragraphs: [
+        '**归一化**把非零向量变成同方向、长度为 1 的向量，计算方法是每个分量除以原长度。对 (3,4)，len=5，得到 (0.6,0.8)。normalized() 返回新 Vec2，不修改原向量，因此需要原距离时仍可保留它。',
+        'return 中使用“条件 ? 条件为真时的值 : 条件为假时的值”。len>1e-9 时构造 Vec2{x/len,y/len}，否则返回默认零向量 Vec2{}。1e-9 表示 10 的负 9 次方，是本例处理接近零长度的阈值，避免除零；阈值应随坐标单位和范围选择。',
+        '归一化保留方向却丢弃原长度，不是每个向量都应该归一化。例如速度向量的长度表示速度大小，随便归一化会改变实际速度。先把方向和大小分开，再在移动例子中把距离乘回来。'
+      ]
+    }
+  },
+  26: {
+    index: {
+      paragraphs: [
+        'std::unordered_map<Key,Value> 是按键查找值的无序映射，由 <unordered_map> 提供。本例 Key 为 std::string 路径，Value 为 std::weak_ptr<Texture> 弱引用；同一字符串键对应一个索引项，不依赖插入顺序来表示资源身份。',
+        'index[path] 取得路径对应的弱引用；路径还没有登记时会插入一个默认的空 weak_ptr。缓存因此只保存查找入口，不成为纹理的强拥有者。下一步用 lock() 查询对象是否仍由调用者拥有，再决定复用还是创建。'
+      ]
+    },
+    'cache-life': {
+      paragraphs: [
+        '缓存只持弱引用，销毁 Cache 不必销毁调用者仍在使用的纹理；反过来，Cache 仍活着也不代表所有索引资源存活。索引容器生命周期与资源生命周期已经分开。',
+        '如果把索引值改成 shared_ptr，缓存就会一直延长纹理存活，直到删除条目或销毁缓存。强缓存可以是一种有意策略，但与本课“最后使用者离开就释放”的规则不同。资源析构若依赖 GPU 设备仍存在，还要另行安排设备与资源的销毁顺序，shared_ptr 不会自动建立这层架构。'
+      ]
+    }
+  },
+  27: {
+    'begin-play': {
+      paragraphs: [
+        'BeginPlay 是 Actor 的虚生命周期函数，开始参与游戏时由引擎调用；override 核对签名，ALabProbe::BeginPlay 表示类外定义。Super 是 UE 提供的父类别名，Super::BeginPlay() 先完成父类流程，再执行当前类的行为。无需另写 main 手动调用它，也不要在构造函数里假装开始游戏。',
+        '下方 UE_LOG 是引擎日志宏，LogTemp 是示例日志类别，Display 是级别，TEXT("EngineLab ready") 是适配引擎字符类型的文本字面量。此处先输出一条固定消息，下一小节再扩展为带实例名的格式化日志。'
+      ]
+    }
+  },
+  28: {
+    components: {
+      paragraphs: [
+        'UStaticMeshComponent 是显示静态网格的场景组件，具有空间变换。CreateDefaultSubobject<T>(名称) 在类构造函数中建立固定的默认子对象，模板参数 T 指定组件类型，TEXT("Mesh") 给它稳定组件名。SetRootComponent(Mesh) 再把该场景组件设为 Actor 根，Actor 位置便有承载者。',
+        '这些组件参与 UE 对象体系，不使用普通 new/delete。先了解这两个调用的作用，再看下面属性与构造例子。运行时动态加组件另有注册流程；不要把创建默认子对象的语句挪进 Tick 反复执行。'
+      ]
+    }
+  },
+  30: {
+    camera: {
+      paragraphs: [
+        'SpringArm 是把相机放在相对距离的相机臂组件，Camera 负责观察画面。ACharacter 已有胶囊根；构造中让 CameraBoom 挂到根，再让 Camera 挂到 CameraBoom。SetupAttachment 建立父子关系，子组件的相对变换跟随父组件。',
+        'TargetArmLength=450.f 指相机臂长度；FRotator 的参数顺序是俯仰 Pitch、偏航 Yaw、翻滚 Roll，所以 (-45,0,0) 设置俯视角。当前相机方向固定，不含鼠标旋转；网格与动画资产仍需在蓝图中指定，胶囊能移动不等于已经有可见人物。'
+      ]
+    }
+  },
+  31: {
+    trigger: {
+      paragraphs: [
+        'USphereComponent 是球形碰撞查询组件，适合表示一个不要求可见网格的触发范围。CreateDefaultSubobject 创建它，SetRootComponent 使其承载 Actor 空间位置，InitSphereRadius(100.f) 给出半径。SetCollisionProfileName 选择响应预设，SetGenerateOverlapEvents 允许本组件产生重叠事件。',
+        'OverlapAllDynamic 预设面向动态对象的重叠响应，但还需要对方组件有合适的 Query 与重叠设置。球形检测范围不等于一颗自动可见的球；编辑器显示检测轮廓与游戏中渲染模型是两种事情。下面再绑定事件函数，连接感知与行为。'
+      ]
+    }
+  }
+};
+
+const nextLessons = {
+  15:'下一课用 unique_ptr 把这套生命周期责任应用到动态角色。',
+  16:'下一课把多个独占拥有者放进 vector，建立可以增删的队伍。',
+  17:'下一课把筛选和排序交给标准算法，并用 lambda 表达变化规则。',
+  18:'下一课把内存里的逻辑数据写成明确的存档格式。',
+  19:'下一课比较返回值、异常和断言，学习在调试器中定位失败。',
+  20:'下一课把多个源文件的编译与链接规则写成 CMake 目标。',
+  21:'下一课组合共同接口、拥有者和调度，完成一个可结束的回合战斗。',
+  22:'下一课加入位置和向量，开始描述角色在地图中的空间状态。',
+  23:'下一课使用速度和经过时间决定每一帧的移动距离。',
+  24:'下一课把位置、生命与速度整理成可组合的组件数据。',
+  25:'下一课研究多个对象共享同一资源时的缓存与释放。',
+  26:'下一课进入 UE 的对象、模块与生命周期回调，区分引擎管理与标准所有权。',
+  27:'下一课创建网格组件，在 Tick 中按时间推进位置。',
+  28:'下一课把生命值组件接到反射、蓝图属性和伤害事件。',
+  29:'下一课连接输入动作、可控制角色与移动组件。',
+  30:'下一课通过重叠事件发现玩家进入陷阱，并发送一次伤害。',
+  31:'下一课把收集、分数、移动与伤害接成同一个可重复运行的场景。',
+  32:'后续可先选择一种扩展：用统一状态管理完成和失败，或把本课逻辑数据接入存档；先补全规则与验收，再增加表现。'
+};
+
+export const advancedLectures = Object.fromEntries(Object.entries(draftLectures).map(([number, sections]) => {
+  const n=Number(number);
+  const byKey=new Map(outlines[n].map(([key,title],index)=> {
+    const original=sections[index];
+    const revision=replacements[n]?.[key]??{};
+    const entry={...original,...revision,title,id:`l${n}-${key}`};
+    if(revision.codeFiles){delete entry.code;delete entry.language;}
+    entry.paragraphs=key==='overview'?[...introductions[n]]:[...entry.paragraphs];
+    if(key==='practice')entry.paragraphs.push(nextLessons[n]);
+    const ownsCode=Boolean(entry.code||entry.codeFiles?.length);
+    entry.exampleId=ownsCode?entry.id:`l${n}-${references[n]?.[key]??preferredExamples[n]}`;
+    if(entry.code)entry.codeName=n>=27?`${entry.id}.cpp`:`lesson${n}.cpp`;
+    entry.bindings=(links[n]?.[key]??[]).map(([text,lines,file])=>{
+      const paragraph=entry.paragraphs.length;entry.paragraphs.push(text);
+      return {paragraph,text,lines,...(file?{file}:{}),exampleId:entry.exampleId};
+    });
+    return [key,entry];
+  }));
+  return [n,(orders[n]??outlines[n].map(([key])=>key)).map(key=>byKey.get(key))];
+}));

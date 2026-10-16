@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "id": "c3a03a2e-bccf-4bc5-bd7e-321f5a1c2d49",
+  "clientId": "96ff57ac-a9a4-4dad-8bb8-6216d8f0387e",
+  "lessonId": "lesson-15",
+  "startedAt": 1792132254016,
+  "endedAt": 1792132304034,
+  "source": "auto",
+  "revision": 1,
+  "durationMs": 50018,
+  "days": {
+    "2026-10-16": 50018
+  },
+  "note": "恢复已测量的未保存计时",
+  "createdAt": "2026-10-16T06:38:37.293Z",
+  "updatedAt": "2026-10-16T06:38:37.293Z",
+  "deleted": false
+}
