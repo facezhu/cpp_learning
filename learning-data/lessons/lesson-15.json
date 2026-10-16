@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "lesson-15",
+  "revision": 4,
+  "completed": true,
+  "historical": false,
+  "checks": [
+    true,
+    true,
+    true
+  ],
+  "notes": "",
+  "code": "",
+  "answers": {},
+  "updatedAt": "2026-10-16T04:07:48.991Z"
+}

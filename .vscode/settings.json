@@ -1,4 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/28376/Documents/ChatGPT/New project/cpp-engine-academy/exercises/lesson21",
+    "cmake.sourceDirectory": "${workspaceFolder}/exercises/lesson21",
     "cmake.autoDetectSourceDirectory": false
 }

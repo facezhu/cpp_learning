@@ -48,7 +48,7 @@ exercises/
 
 第 15—32 课根部文件带 TODO。各课 README 提供 Windows/macOS 命令；多文件课只一起编译本课需要的 cpp，不能加入 reference 或其他课的 main。网页参考答案直接读取本课 reference 文件。
 
-保存 cpp 就是保存练习；网页“留下你的解答”只是可选复盘留档。原单文件调试配置继续可用，第 12 课选择 **C++: debug lesson12** 或 **C++: build lesson12**。
+保存 cpp 就是保存练习；网页“留下你的解答”只是可选复盘留档。VS Code 打开项目根目录后，保持要运行的 `.cpp` 为当前编辑器，按 F5 使用 **C++: debug active file**；按 Cmd+Shift+B（Windows 为 Ctrl+Shift+B）只编译当前文件。第 12 课选择 **C++: debug lesson12** 或 **C++: build lesson12**；第 21 课选择对应的 **lesson21** 配置，它们会一起编译该课的多个源文件。`reference/` 内的单文件参考答案也可以用当前文件配置调试。
 
 ## 简化计时
 
@@ -87,7 +87,7 @@ Git 提交保存在本机，推送成功才完成云端同步。在另一台 PC/
 
 ## C++ 与 UE 工具链
 
-第 1—26 课采用 C++17。Windows 原有调试配置使用 MSYS2 UCRT64 g++；macOS 在安装 Xcode 命令行工具后按课内 clang++ 命令运行，原 Windows 调试路径需自行适配。第 21 课另提供 CMake 构建方式。
+第 1—26 课采用 C++17。VS Code 配置按操作系统选择工具：macOS 使用 Xcode 命令行工具中的 `/usr/bin/clang++` 和 C/C++ 扩展自带的 LLDB 调试适配器，Windows 使用 MSYS2 UCRT64 g++/GDB，Linux 使用 g++/GDB。macOS 生成无扩展名的可执行文件，Windows 生成 `.exe`，项目配置可一起通过 GitHub 同步。若 macOS 状态栏仍显示 Win32，运行“C/C++: 选择配置”并选 Mac。第 21 课另提供 CMake 构建方式。
 
 第 27—32 课目标 UE 5.6 / EngineLab 模块，包含源码和编辑器配置说明。需要 UE 支持的构建工具链，不能用普通 g++ 编译。蓝图、输入资产、关卡和 `.uasset` 需按说明自行创建并保存。**本机未安装 UE 编辑器，UE 示例未进行编辑器编译运行验证。**
 
