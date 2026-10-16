@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "id": "8fbb7aeb-bc36-42bb-a9e8-af0ad4bf6948",
+  "clientId": "9e29bf8d-6c2c-4565-9401-c979f019c868",
+  "lessonId": "lesson-28",
+  "startedAt": 1792135420400,
+  "endedAt": 1792135427887,
+  "source": "auto",
+  "revision": 4,
+  "durationMs": 7487,
+  "days": {
+    "2026-10-16": 7487
+  },
+  "note": "打开课程至退出页面",
+  "createdAt": "2026-10-16T07:23:40.402Z",
+  "updatedAt": "2026-10-16T07:23:47.903Z",
+  "deleted": false
+}

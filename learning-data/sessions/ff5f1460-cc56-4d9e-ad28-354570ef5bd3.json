@@ -4,15 +4,15 @@
   "clientId": "9e29bf8d-6c2c-4565-9401-c979f019c868",
   "lessonId": "lesson-16",
   "startedAt": 1792135168040,
-  "endedAt": null,
+  "endedAt": 1792135407975,
   "source": "auto",
-  "revision": 6,
-  "durationMs": 49990,
+  "revision": 25,
+  "durationMs": 239935,
   "days": {
-    "2026-10-16": 49990
+    "2026-10-16": 239935
   },
   "note": "打开课程至退出页面",
   "createdAt": "2026-10-16T07:19:28.042Z",
-  "updatedAt": "2026-10-16T07:20:18.032Z",
+  "updatedAt": "2026-10-16T07:23:27.991Z",
   "deleted": false
 }
